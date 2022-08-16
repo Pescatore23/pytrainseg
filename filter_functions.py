@@ -102,6 +102,7 @@ class image_filter:
             self.Gradient_dict[key] = gradients
             
     def Hessian(self):
+        # TODO: add
         for key in self.Gradient_dict.keys():
             axes = self.data.ndim
             gradients = self.Gradient_dict[key]
@@ -112,6 +113,18 @@ class image_filter:
                 Helm.name = ''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])])
             
             self.calculated_features = self.calculated_features+gradients+H_elems
+    
+    # TODO: include feature selection either in compute (better) or save
+    def prepare(self):
+        self.Gaussian_stack()
+        self.Gradients()
+        self.Hessian()
+        
+    def compute(self):
+        self.prepare()
+        for feat in self.calculated_features:
+            feat.compute()
+        
         
         
 
@@ -156,7 +169,7 @@ class image_filter:
 #         fullname = ''.join(['gaussian_time_',f'{sig:.1f}'])
 #     return G, fullname
 
-# #TODO create a class that makes the feature stacks and allows chosing suitable backends, e.g. dask, cupy, cucim etc.
+# #TODO create a class that makes the feature stacks and allows c.hosing suitable backends, e.g. dask, cupy, cucim etc.
 # def nd_gaussian_stack(da, sigmas):
 #     fullnames = []
 #     gstack = np.zeros(list(da.shape) + [len(sigmas)])
