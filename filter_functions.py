@@ -75,14 +75,14 @@ class image_filter:
     def load_raw_data(self):
         data = xr.load_dataset(self.data_path, chunks = 'auto')
         da = dask.array.from_array(data.tomo).rechunk(chunks = self.chunks)
-        da.name = 'original'
+        # da.name = 'original'
         self.data = da 
         
     def Gaussian_Blur_4D(self, sigma):
         deptharray = np.ones(self.data.ndim)+4*sigma
         deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
         G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigma)
-        G.name = 'Gaussian_Blur_'+f'{sigma:.1f}'
+        # G.name = 'Gaussian_Blur_'+f'{sigma:.1f}'
         self.calculated_features.append(G)
         self.Gaussian_dict[sigma] = G
         
@@ -111,10 +111,10 @@ class image_filter:
             axes = self.data.ndim
             gradients = self.Gradient_dict[key]
             H_elems = [dask.array.gradient(gradients[ax0], axis=ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
-            elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
+            # elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
             
-            for (Helm, elm) in zip(H_elems,elems):
-                Helm.name = ''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])])
+            # for (Helm, elm) in zip(H_elems,elems):
+                # Helm.name = ''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])])
             
             self.calculated_features = self.calculated_features+gradients+H_elems
     
