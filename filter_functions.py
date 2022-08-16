@@ -8,25 +8,29 @@ Created on Mon Aug 15 16:35:22 2022
 # necessary packages for feature stack
 import numpy as np
 from scipy import ndimage
-
 import matplotlib.pyplot as plt
-
 from skimage import filters, feature, io
 from skimage.morphology import disk,ball
 
 # from sklearn.ensemble import RandomForestClassifier
-
 import os
 import imageio
 import sys
+
 import dask
 import dask.array
+from dask.distributed import Client, LocalCluster
 # import cupy as cp
 # import cucim
 from itertools import combinations_with_replacement
 import xarray as xr
 
 # functions take chunked dask-array as input
+
+# start-up cluster, TODO: option to connect to exisitng cluster
+cluster = LocalCluster() 
+client = Client(cluster)
+print('Dashboard at '+cluster.dashboard_link)
 
 default_feature_dict = {'Gaussian': True, 
                # 'Sobel': True,
