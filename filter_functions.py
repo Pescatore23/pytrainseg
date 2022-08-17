@@ -278,6 +278,7 @@ class image_filter:
                 
     
     # TODO: include feature selection either in compute (better) or save
+    # TODO: maybe add purge function
     def prepare(self):
         self.Gaussian_4D_stack()
         self.diff_Gaussian('4D')
@@ -288,15 +289,18 @@ class image_filter:
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
         self.rank_filter_stack()
+        self.prepared = True
 
         
     def compute(self):
-        self.prepare()
-        for feat in self.calculated_features:
-            # are multiplely used intermediate results persistent or recalculated, e.g. Gaussian Blur? what about spilling to disk?
-            feat.compute()
-        self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
-        self.feature_stack.rechunk(self.outchunks)
+        if not self.prepared:
+            print('prepare first')
+        else:
+            for feat in self.calculated_features:
+                # are multiplely used intermediate results persistent or recalculated, e.g. Gaussian Blur? what about spilling to disk?
+                feat.compute()
+            self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
+            self.feature_stack.rechunk(self.outchunks)
         
     def store_xarray_nc(self, outpath = None):
         if outpath is None:
