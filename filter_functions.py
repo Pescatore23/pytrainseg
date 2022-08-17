@@ -285,9 +285,9 @@ class image_filter:
         self.Gradients()
         self.Hessian()
         self.Gaussian_time_stack()
-        self.diff_Gaussian('time')
+        # self.diff_Gaussian('time')
         self.Gaussian_space_stack()
-        self.diff_Gaussian('space')
+        # self.diff_Gaussian('space')
         self.rank_filter_stack()
         self.prepared = True
 
