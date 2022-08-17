@@ -281,7 +281,7 @@ class image_filter:
     # TODO: maybe add purge function
     def prepare(self):
         self.Gaussian_4D_stack()
-        self.diff_Gaussian('4D')
+        # self.diff_Gaussian('4D')
         self.Gradients()
         self.Hessian()
         self.Gaussian_time_stack()
