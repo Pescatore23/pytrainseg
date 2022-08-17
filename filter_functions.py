@@ -177,7 +177,7 @@ class image_filter:
         elif mode == 'time':
             lookup_dict = self.Gaussian_time_dict
             
-        for comb in lookup_dict.keys():
+        for comb in combinations(lookup_dict.keys(),2):
             DG = lookup_dict[comb[1]] - lookup_dict[comb[0]]
             name = ''.join(['diff_of_gauss_',mode,'_',comb[1],'_',comb[0]])
             self.calculated_features.append(DG)
