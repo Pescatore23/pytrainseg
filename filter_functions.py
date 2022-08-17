@@ -22,12 +22,14 @@ import dask.array
 from dask.distributed import Client, LocalCluster
 # import cupy as cp
 # import cucim
-from itertools import combinations_with_replacement
+from itertools import combinations_with_replacement, combinations
 import xarray as xr
 
 # functions take chunked dask-array as input
 
 # start-up cluster, TODO: option to connect to exisitng cluster
+# TODO: class/function to boot up cluster with custom options, e.g. workers/threads
+# esp. use SSD for memory spilling
 cluster = LocalCluster() 
 client = Client(cluster)
 print('Dashboard at '+cluster.dashboard_link)
@@ -45,25 +47,30 @@ default_feature_dict = {'Gaussian': True,
 class image_filter:
     def __init__(self,
                  data_path = None,
+                 outpath = None,
                  sigmas = [0,2,4],
                  feature_dict = default_feature_dict,
                  mod_feat_dict = None,
-                 chunksize = '20 MiB'
+                 chunksize = '20 MiB',
+                 outchunks = '300 MiB'
                  ):
         if mod_feat_dict is not None:
             for key in mod_feat_dict:
                 feature_dict[key] = mod_feat_dict[key]
         
         self.data_path = data_path
+        self.outpath = outpath,
         self.sigmas = sigmas        
         self.feature_dict = feature_dict
         # TODO: allow option of custom shaped chunks
         self.chunks = chunksize
+        self.outchunks = outchunks
         
         # not sure if this is clever, does dask understand that this data is reused?
-        self.Gaussian_dict = {}
+        self.Gaussian_4D_dict = {}
         self.Gradient_dict = {}
         self.calculated_features = []
+        self.feature_names = []
         
         
     def open_raw_data(self):
@@ -79,22 +86,31 @@ class image_filter:
         self.data = da 
         
     def Gaussian_Blur_4D(self, sigma):
+        # TODO: check on boundary mode
         deptharray = np.ones(self.data.ndim)+4*sigma
         deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
-        G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigma)
-        # G.name = 'Gaussian_Blur_'+f'{sigma:.1f}'
+        G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='constant', sigma = sigma)
+        self.feature_names.append('Gaussian_4D_Blur_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
         self.Gaussian_dict[sigma] = G
         
-    def Gaussian_stack(self):
+    def Gaussian_4D_stack(self):
         flag = True
         for sigma in self.sigmas:
             if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
-                    self.Gaussian_dict['original'] = self.data
+                    self.Gaussian_4D_dict['original'] = self.data
+                    self.feature_names.append('original')
             else:
                 self.Gaussian_Blur_4D(sigma)
+                
+    def diff_Gaussian_4D(self):
+        for comb in self.Gaussian_4D_dict.keys():
+            DG = self.Gaussian_4D_dict[comb[1]] - self.Gaussian_4D_dict[comb[0]]
+            name = ''.join(['diff_of_gauss_4D_','_',comb[1],'_',comb[0]])
+            self.calculated_features.append(DG)
+            self.feature_names.append(name)
     
     def Gradients(self):
         for key in self.Gaussian_dict:
@@ -106,21 +122,23 @@ class image_filter:
             self.Gradient_dict[key] = gradients
             
     def Hessian(self):
-        # TODO: add
+        # TODO: add max of all dimensions
         for key in self.Gradient_dict.keys():
             axes = range(self.data.ndim)
             gradients = self.Gradient_dict[key]
             H_elems = [dask.array.gradient(gradients[ax0], axis=ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
-            # elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
             
-            # for (Helm, elm) in zip(H_elems,elems):
-                # Helm.name = ''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])])
+            gradnames = ['Gradient_sigma_'+key+'_'+str(ax0) for ax0 in range(axes)]
+            elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(range(axes), 2)]
+            hessnames = [''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])]) for elm in elems ]
             
+            self.feature_names = self.feature_names + gradnames + hessnames
             self.calculated_features = self.calculated_features+gradients+H_elems
     
     # TODO: include feature selection either in compute (better) or save
     def prepare(self):
         self.Gaussian_stack()
+        self.diff_Gaussian_4D()
         self.Gradients()
         self.Hessian()
         
@@ -128,6 +146,20 @@ class image_filter:
         self.prepare()
         for feat in self.calculated_features:
             feat.compute()
+        self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
+        self.feature_stack.rechunk(self.outchunks)
+        
+    def store_xarray_nc(self):
+        shp = self.feature_stack.shape
+        # TODO: take coordinates from tomodata dataset and get correct feature name
+        self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
+                                 coords = {'x': np.arange(shp[0]),
+                                           'y': np.arange(shp[1]),
+                                           'z': np.arange(shp[2]),
+                                           'time': np.arange(shp[3]),
+                                           'feature': self.feature_names}
+                                 )
+        self.result.to_netcdf4(self.outpath)
         
         
         
