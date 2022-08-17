@@ -63,13 +63,13 @@ class image_filter:
         # not sure if this is clever, does dask understand that this data is reused?
         self.Gaussian_dict = {}
         self.Gradient_dict = {}
-        self.calculated_features = {}
+        self.calculated_features = []
         
         
     def open_raw_data(self):
         data = xr.open_dataset(self.data_path, chunks = 'auto')
         da = dask.array.from_array(data.tomo).rechunk(chunks = self.chunks)
-        da.name = 'original'
+        # da.name = 'original'
         self.data = da
     
     def load_raw_data(self):
@@ -94,21 +94,21 @@ class image_filter:
                     flag = False
                     self.Gaussian_dict['original'] = self.data
             else:
-                self.Gaussian_Blur_4D(self, sigma)
+                self.Gaussian_Blur_4D(sigma)
     
     def Gradients(self):
         for key in self.Gaussian_dict:
             G = self.Gaussian_dict[key]
             gradients = dask.array.gradient(G)
-            axes = G.ndim
-            for ax0 in range(axes):
-                gradients[ax0].name = 'Gradient_sigma_'+key+'_'+str(ax0)
+            # axes = G.ndim
+            # for ax0 in range(axes):
+                # gradients[ax0].name = 'Gradient_sigma_'+key+'_'+str(ax0)
             self.Gradient_dict[key] = gradients
             
     def Hessian(self):
         # TODO: add
         for key in self.Gradient_dict.keys():
-            axes = self.data.ndim
+            axes = range(self.data.ndim)
             gradients = self.Gradient_dict[key]
             H_elems = [dask.array.gradient(gradients[ax0], axis=ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
             # elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
