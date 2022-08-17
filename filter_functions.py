@@ -216,8 +216,8 @@ class image_filter:
             gradients = self.Gradient_dict[key]
             H_elems = [dask.array.gradient(gradients[ax0], axis=ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
             
-            gradnames = ['Gradient_sigma_'+key+'_'+str(ax0) for ax0 in range(axes)]
-            elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(range(axes), 2)]
+            gradnames = ['Gradient_sigma_'+key+'_'+str(ax0) for ax0 in axes]
+            elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
             hessnames = [''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])]) for elm in elems ]
             
             self.feature_names = self.feature_names + gradnames + hessnames
