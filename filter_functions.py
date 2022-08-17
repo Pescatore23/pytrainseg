@@ -204,8 +204,8 @@ class image_filter:
             
             
     def Gradients(self):
-        for key in self.Gaussian_dict:
-            G = self.Gaussian_dict[key]
+        for key in self.Gaussian_4D_dict:
+            G = self.Gaussian_4D_dict[key]
             gradients = dask.array.gradient(G)
             self.Gradient_dict[key] = gradients
             
