@@ -119,11 +119,14 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
     else:
         print('coordinates not found')
     if lazy:
-        print('Need to actually calculate the features ...')
+        print('Need to actually calculate the features for each slice, seems inefficient')
     #   not sure how efficient this is
     #   multiple training slices might be faster with the chunks
     #   probably getting the feature stack at least as persist is better
         feat_stack = feat_stack.compute()
+    else:
+        if type(feat_stack) is not np.ndarray:
+            feat_stack = feat_stack.compute()
     
     X, y = extract_training_data(truth, feat_stack)
     return X,y
@@ -138,7 +141,7 @@ class train_segmentation:
         self.training_path = training_path
         self.label_path = os.path.join(training_path, 'label_images')
         self.training_dict = {}
-        self.method = clf_method
+        self.clf_method = clf_method
                 
         if not os.path.exists(self.label_path):
             os.mkdir(self.label_path)
@@ -148,8 +151,13 @@ class train_segmentation:
     def open_feature_data(self):
         self.feat_data = xr.open_dataset(self.feature_path)
         self.feature_names = self.feat_data['feature'].data
-
-    def import_lazy_feature_stack(self, data, lazy = True):
+    
+    def import_feature_data(self, data):
+        self.feat_data = data
+        self.feature_names = self.feat_data['feature'].data
+        self.lazy = False
+    
+    def import_lazy_feature_data(self, data, lazy = True):
         self.feat_data = data
         self.feature_names = self.feat_data['feature'].data
         self.lazy = lazy
@@ -357,7 +365,7 @@ class train_segmentation:
         self.clf = clf
         
     def plot_importance(self, figsize=(16,9)):
-        plt.figure(figsize=sigsize)
+        plt.figure(figsize=figsize)
         plt.stem(self.feature_names, self.clf.feature_importances_,'x')
         plt.xticks(rotation=90)
         plt.ylabel('importance') 

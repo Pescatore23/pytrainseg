@@ -349,26 +349,27 @@ class image_filter:
             self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
     
     def compute(self):
-        # self.feature_stack.compute()
-        self.feature_stack.persist() #not sure, but persist should be preferred
+        # self.feature_stack = self.feature_stack.compute()
+        self.feature_stack = self.feature_stack.persist() #not sure, but persist should be preferred
         self.computed = True
         
     def make_xarray_nc(self, outpath = None, store=False):
         if outpath is None:
             outpath = self.outpath
         shp = self.feature_stack.shape
-        if self.computed:
-            self.feature_stack.rechunk(self.outchunks)
-        
-        self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
-                                 coords = {'x': np.arange(shp[0]),
-                                           'y': np.arange(shp[1]),
-                                           'z': np.arange(shp[2]),
-                                           'time': np.arange(shp[3]),
-                                           'feature': self.feature_names}
-                                 )
+        coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'feature': self.feature_names}
         if store:
-            print('maybe you have to compute the stack first ... ?!')
-            # if self.computed:
-            self.result.to_netcdf4(outpath)
-            # else:
+            if self.computed:
+                self.feature_stack.rechunk(self.outchunks)
+                self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
+                         coords = coords
+                         )
+                self.result.to_netcdf(outpath)
+            else:
+                print('maybe you have to compute the stack first ... ?!')
+                      
+        else:
+            self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
+                                     coords = coords
+                                                 )     
+            
