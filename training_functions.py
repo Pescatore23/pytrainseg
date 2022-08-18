@@ -214,6 +214,11 @@ class train_segmentation:
                 self.current_computed = False
             else:
                 self.current_computed = True
+                
+            if type(im) is not np.ndarray:
+                im = im.compute()
+            if imfirst is not None and type(imfirst) is not np.ndarray:
+                imfirst = imfirst.compute()
 
             im8 = im-im.min()
             im8 = im8/im8.max()*255
@@ -346,22 +351,24 @@ class train_segmentation:
         truth = self.current_truth
         training_dict = self.training_dict
         slice_name = self.current_slice_name
+        feat_stack = self.current_feat_stack
         
         #re-consider these lines
         if self.lazy and not self.current_computed:
             print('now actually calculating the features')
-            self.current_feat_stack.rechunk('auto')
-            self.current_feat_stack = self.current_feat_stack.compute() 
+            # self.current_feat_stack.rechunk('auto') #why rechunk 'auto' ?! if anything should be something small fot massive parallel
+            feat_stack = feat_stack.compute() 
             self.current_computed = True
-        feat_stack = self.current_feat_stack
-        
+        if type(feat_stack) is not np.ndarray:
+            feat_stack = feat_stack.compute()      
+
         #train
         # print('training ...')
-        resultim, clf, training_dict = training_function(im, truth, feat_stack, training_dict, slice_name, self.method)
+        resultim, clf, training_dict = training_function(im, truth, feat_stack, training_dict, slice_name, self.clf_method)
 
         # update variables
         self.current_result = resultim
-        self.training_dict = training_dict
+        self.training_dict = training_dict #this necessary ?
         self.clf = clf
         
     def plot_importance(self, figsize=(16,9)):

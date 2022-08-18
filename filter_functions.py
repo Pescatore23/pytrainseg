@@ -21,7 +21,7 @@ from skimage.morphology import ball
 
 import dask
 import dask.array
-from dask.distributed import Client, LocalCluster
+# from dask.distributed import Client, LocalCluster
 
 from itertools import combinations_with_replacement, combinations
 import xarray as xr
@@ -31,9 +31,9 @@ import xarray as xr
 # start-up cluster, TODO: option to connect to exisitng cluster
 # TODO: class/function to boot up cluster with custom options, e.g. workers/threads
 # esp. use SSD for memory spilling
-cluster = LocalCluster() 
-client = Client(cluster)
-print('Dashboard at '+cluster.dashboard_link)
+# cluster = LocalCluster() 
+# client = Client(cluster)
+# print('Dashboard at '+cluster.dashboard_link)
 
 default_feature_dict = {'Gaussian': True, 
                # 'Sobel': True,
@@ -361,7 +361,7 @@ class image_filter:
         if store:
             if self.computed:
                 self.feature_stack.rechunk(self.outchunks)
-                self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
+                self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack.compute())},
                          coords = coords
                          )
                 self.result.to_netcdf(outpath)
