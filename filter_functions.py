@@ -59,7 +59,7 @@ class image_filter:
                  sigmas = [0,2,4],
                  feature_dict = default_feature_dict,
                  mod_feat_dict = None,
-                 chunksize = '20 MiB',
+                 chunksize = '20 MiB', #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
                  outchunks = '300 MiB',
                  ranks = ['maximum', 'minimum', 'median'], #, 'mean'
                  sigma_t = 40
@@ -87,6 +87,7 @@ class image_filter:
         self.sigma_t = sigma_t
         
         self.prepared = False
+        self.computed = False
         
     
     # TODO: currently loads full dataset into memory, consider aligning desired chunk already for original dataset to avoid rechunking
@@ -147,6 +148,7 @@ class image_filter:
                 if flag:
                     flag = False
                     self.Gaussian_4D_dict['original'] = self.data
+                    self.calculated_features.append(self.data)
                     self.feature_names.append('original')
             else:
                 self.Gaussian_Blur_4D(sigma)
@@ -339,22 +341,26 @@ class image_filter:
         self.rank_filter_stack()
         self.prepared = True
 
-        
-    def compute(self):
+    
+    def stack_features(self):
         if not self.prepared:
             print('prepare first')
         else:
-            for feat in self.calculated_features:
-                # are multiplely used intermediate results persistent or recalculated, e.g. Gaussian Blur? what about spilling to disk?
-                feat.compute()
             self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
-            self.feature_stack.rechunk(self.outchunks)
+    
+    def compute(self):
+        # self.feature_stack.compute()
+        self.feature_stack.persist() #not sure, but persist should be preferred
+        self.computed = True
         
-    def store_xarray_nc(self, outpath = None):
+    def make_xarray_nc(self, outpath = None, store=False):
         if outpath is None:
             outpath = self.outpath
         shp = self.feature_stack.shape
         # TODO: take coordinates from tomodata dataset
+        if self.computed:
+            self.feature_stack.rechunk(self.outchunks)
+        
         self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
                                  coords = {'x': np.arange(shp[0]),
                                            'y': np.arange(shp[1]),
@@ -362,4 +368,8 @@ class image_filter:
                                            'time': np.arange(shp[3]),
                                            'feature': self.feature_names}
                                  )
-        self.result.to_netcdf4(outpath)
+        if store:
+            print('maybe you have to compute the stack first ... ?!')
+            # if self.computed:
+            self.result.to_netcdf4(outpath)
+            # else:
