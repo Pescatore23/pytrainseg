@@ -7,8 +7,6 @@ to be loaded in Jupyter
 
 @author: fische_r
 """
-
-#reload after kernel reset
 import xarray as xr
 import os
 from skimage import io, exposure
@@ -17,10 +15,11 @@ import numpy as np
 
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
+
 #stuff for painting on the image
-from ipywidgets import Image
-from ipywidgets import ColorPicker, IntSlider, link, AppLayout, HBox
-from ipycanvas import  hold_canvas,  MultiCanvas #RoughCanvas,Canvas,
+# from ipywidgets import Image
+# from ipywidgets import ColorPicker, IntSlider, link, AppLayout, HBox
+# from ipycanvas import  hold_canvas,  MultiCanvas #RoughCanvas,Canvas,
 
 default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, random_state = 42, max_features=None) 
 
@@ -163,7 +162,10 @@ class train_segmentation:
                 if imfirst is not None:
                     imfirst = imfirst.compute()
                 #already start calculating the feature stack
-                feat_stack.persist() 
+                feat_stack.persist()
+                self.current_computed = False
+            else:
+                self.current_computed = True
 
             im8 = im-im.min()
             im8 = im8/im8.max()*255
@@ -196,99 +198,99 @@ class train_segmentation:
             self.current_slice_name = slice_name
             #TODO: maybe keep lazy computed feature stacks of older slices somewhere and purge if using up too much RAM
     
-    def interface(self, alpha=0.15):
-        # TODO: add ipycanvas stuff
-        im8 = self.current_im8
-        resultim = self.current_result
+#     def interface(self, alpha=0.15):
+#         # TODO: add ipycanvas stuff
+#         im8 = self.current_im8
+#         resultim = self.current_result
         
-        width = im8.shape[1]
-        height = im8.shape[0]
+#         width = im8.shape[1]
+#         height = im8.shape[0]
 
-        Mcanvas = MultiCanvas(4, width=width, height=height)
-        background = Mcanvas[0]
-        resultdisplay = Mcanvas[2]
-        truthdisplay = Mcanvas[1]
-        canvas = Mcanvas[3]
-        canvas.sync_image_data = True
+#         Mcanvas = MultiCanvas(4, width=width, height=height)
+#         background = Mcanvas[0]
+#         resultdisplay = Mcanvas[2]
+#         truthdisplay = Mcanvas[1]
+#         canvas = Mcanvas[3]
+#         canvas.sync_image_data = True
 
-        drawing = False
-        position = None
-        shape = []
+#         drawing = False
+#         position = None
+#         shape = []
 
-        def on_mouse_down(x, y):
-            global drawing
-            global position
-            global shape
+#         def on_mouse_down(x, y):
+#             global drawing
+#             global position
+#             global shape
 
-            drawing = True
-            position = (x, y)
-            shape = [position]
+#             drawing = True
+#             position = (x, y)
+#             shape = [position]
 
-        def on_mouse_move(x, y):
-            global drawing
-            global position
-            global shape
+#         def on_mouse_move(x, y):
+#             global drawing
+#             global position
+#             global shape
 
-            if not drawing:
-                return
+#             if not drawing:
+#                 return
 
-            with hold_canvas():
-                canvas.stroke_line(position[0], position[1], x, y)
+#             with hold_canvas():
+#                 canvas.stroke_line(position[0], position[1], x, y)
 
-                position = (x, y)
+#                 position = (x, y)
 
-            shape.append(position)
+#             shape.append(position)
 
-        def on_mouse_up(x, y):
-            global drawing
-            global positiondu
-            global shape
+#         def on_mouse_up(x, y):
+#             global drawing
+#             global positiondu
+#             global shape
 
-            drawing = False
+#             drawing = False
 
-            with hold_canvas():
-                canvas.stroke_line(position[0], position[1], x, y)
-                canvas.fill_polygon(shape)
+#             with hold_canvas():
+#                 canvas.stroke_line(position[0], position[1], x, y)
+#                 canvas.fill_polygon(shape)
 
-            shape = []
+#             shape = []
 
-        image_data = np.stack((im8, im8, im8), axis=2)
-        # image_data = np.stack((diff*2, diff*2, diff*2), axis=2)
-        background.put_image_data(image_data, 0, 0)
+#         image_data = np.stack((im8, im8, im8), axis=2)
+#         # image_data = np.stack((diff*2, diff*2, diff*2), axis=2)
+#         background.put_image_data(image_data, 0, 0)
 
-        resultdisplay.global_alpha = alpha
+#         resultdisplay.global_alpha = alpha
         
-        if np.any(resultim>0):
-            result_data = np.stack((255*(resultim==0), 255*(resultim==1), 255*(resultim==2)), axis=2)
-        else:
-            result_data = np.stack((0*resultim, 0*resultim, 0*resultim), axis=2)
-        resultdisplay.put_image_data(result_data, 0, 0)
+#         if np.any(resultim>0):
+#             result_data = np.stack((255*(resultim==0), 255*(resultim==1), 255*(resultim==2)), axis=2)
+#         else:
+#             result_data = np.stack((0*resultim, 0*resultim, 0*resultim), axis=2)
+#         resultdisplay.put_image_data(result_data, 0, 0)
 
-        canvas.on_mouse_down(on_mouse_down)
-        canvas.on_mouse_move(on_mouse_move)
-        canvas.on_mouse_up(on_mouse_up)
+#         canvas.on_mouse_down(on_mouse_down)
+#         canvas.on_mouse_move(on_mouse_move)
+#         canvas.on_mouse_up(on_mouse_up)
 
-        # canvas.stroke_style = "#749cb8"
-        # canvas.global_alpha = 0.75
+#         # canvas.stroke_style = "#749cb8"
+#         # canvas.global_alpha = 0.75
 
-        picker = ColorPicker(description="Color:", value="#ff0000")
-        slidealpha = IntSlider(description="Result overlay", value=0.15)
+#         picker = ColorPicker(description="Color:", value="#ff0000")
+#         slidealpha = IntSlider(description="Result overlay", value=0.15)
 
-        link((picker, "value"), (canvas, "stroke_style"))
-        link((picker, "value"), (canvas, "fill_style"))
-        # link((slidealpha, "value"), (resultdisplay, "global_alpha"))
+#         link((picker, "value"), (canvas, "stroke_style"))
+#         link((picker, "value"), (canvas, "fill_style"))
+#         # link((slidealpha, "value"), (resultdisplay, "global_alpha"))
 
-        HBox((Mcanvas, picker, slidealpha))
-        #print('paint image with #ff0000 for air, #00ff00 for water and #0000ff for fiber')
+#         return HBox((Mcanvas, picker, slidealpha))
+#         #print('paint image with #ff0000 for air, #00ff00 for water and #0000ff for fiber')
         
-    def fetch_labels(self):
-        label_set = canvas.get_image_data()
+#     def fetch_labels(self):
+#         label_set = canvas.get_image_data()
 
-        self.current_truth[label_set[:,:,0]>0] = 1
-        self.current_truth[label_set[:,:,1]>0] = 2
-        self.current_truth[label_set[:,:,2]>0] = 4
+#         self.current_truth[label_set[:,:,0]>0] = 1
+#         self.current_truth[label_set[:,:,1]>0] = 2
+#         self.current_truth[label_set[:,:,2]>0] = 4
 
-        imageio.imsave(self.current_truthpath, self.current_truth)
+#         imageio.imsave(self.current_truthpath, self.current_truth)
         
     def train_slice(self):
         #fetch variables
@@ -298,52 +300,24 @@ class train_segmentation:
         slice_name = self.current_slice_name
         
         #re-consider these lines
-        # if self.lazy:
-        #     self.current_feat_stack.rechunk('auto')
-        #     self.current_feat_stack = self.current_feat_stack.compute() 
+        if self.lazy and not self.current_computed:
+            print('now actually calculating the features')
+            self.current_feat_stack.rechunk('auto')
+            self.current_feat_stack = self.current_feat_stack.compute() 
+            self.current_computed = True
         feat_stack = self.current_feat_stack
         
         #train
+        # print('training ...')
         resultim, clf, training_dict = training_function(im, truth, feat_stack, training_dict, slice_name, self.method)
 
         # update variables
         self.current_result = resultim
         self.training_dict = training_dict
         self.clf = clf
-            
         
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    def plot_importance(self, figsize=(16,9))
+        plt.figure(figsize=sigsize)
+        plt.stem(self.feature_names, self.clf.feature_importances_,'x')
+        plt.xticks(rotation=90)
+        plt.ylabel('importance') 
