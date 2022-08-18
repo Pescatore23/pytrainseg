@@ -357,7 +357,6 @@ class image_filter:
         if outpath is None:
             outpath = self.outpath
         shp = self.feature_stack.shape
-        # TODO: take coordinates from tomodata dataset
         if self.computed:
             self.feature_stack.rechunk(self.outchunks)
         

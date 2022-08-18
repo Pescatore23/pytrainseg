@@ -12,6 +12,7 @@ import os
 from skimage import io, exposure
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
@@ -82,12 +83,50 @@ def training_function(im, truth, feat_stack, training_dict, slice_name, clf):
 def adjust_image_contrast(im, low, high):
     # careful, rescales in every case to 255
     im = exposure.rescale_intensity(im, (low,high))*255
-    return im
-    
+    return im  
     
 def plot_im_histogram(im):
     hist = np.histogram(im, bins=100)
     plt.plot(hist[1][1:],hist[0])
+    
+def extract_coords(labelname):
+    parts = labelname.split('_')
+    c1 = parts[2]
+    p1 = int(parts[3])
+    c2 = parts[4]
+    p2 = int(parts[5])
+    return c1, p1, c2, p2
+
+def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
+    c1, p1, c2, p2 = extract_coords(label_name)
+    # print(label_name)
+    # print(c1, p1, c2, p2)
+    truth = io.imread(os.path.join(trainingpath, label_name))
+    
+    # temporary workaround, make general
+    if c1 == 'x' and c2 == 'time':
+        feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
+    elif c1 == 'x' and c2 == 'y':
+        feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
+    elif c1 == 'x' and c2 == 'z':
+        feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
+    elif c1 == 'y' and c2 == 'z':
+        feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
+    elif c1 == 'y' and c2 == 'time':
+        feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
+    elif c1 == 'z' and c2 == 'time':
+        feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
+    else:
+        print('coordinates not found')
+    if lazy:
+        print('Need to actually calculate the features ...')
+    #   not sure how efficient this is
+    #   multiple training slices might be faster with the chunks
+    #   probably getting the feature stack at least as persist is better
+        feat_stack = feat_stack.compute()
+    
+    X, y = extract_training_data(truth, feat_stack)
+    return X,y
 
 class train_segmentation:
     def __init__(self,
@@ -110,10 +149,10 @@ class train_segmentation:
         self.feat_data = xr.open_dataset(self.feature_path)
         self.feature_names = self.feat_data['feature'].data
 
-    def import_lazy_feature_stack(self, data):
+    def import_lazy_feature_stack(self, data, lazy = True):
         self.feat_data = data
         self.feature_names = self.feat_data['feature'].data
-        self.lazy = True
+        self.lazy = lazy
 
     def suggest_training_set(self):
         dimensions = list(self.feat_data.coords.keys())[:-1]
@@ -122,7 +161,8 @@ class train_segmentation:
         p1 = np.random.choice(range(len(self.feat_data[test_dims[0]])))
         p2 = np.random.choice(range(len(self.feat_data[test_dims[1]])))
         
-        print('You could try ',test_dims[0],'=',p1,' and ',test_dims[1],'=',p2)
+        print('You could try ',test_dims[0],'=',str(p1),' and ',test_dims[1],'=',str(p2))
+        print('However, please sort it like the original '+''.join(dimensions))
         
     def load_training_set(self, c1, p1, c2, p2):
         
@@ -177,8 +217,8 @@ class train_segmentation:
             else:
                 self.current_diff_im = None
             
-            slice_name = ''.join([c1,str(p1),c2,str(p2)])
-            truthpath = os.path.join(self.training_path, ''.join(['label_image_',slice_name,'.tif']))
+            slice_name = ''.join([c1,'_',str(p1),'_',c2,'_',str(p2),'_'])
+            truthpath = os.path.join(self.label_path, ''.join(['label_image_',slice_name,'.tif']))
             
             resultim = np.zeros(im.shape, dtype=np.uint8)
             if os.path.exists(truthpath):
@@ -316,8 +356,33 @@ class train_segmentation:
         self.training_dict = training_dict
         self.clf = clf
         
-    def plot_importance(self, figsize=(16,9))
+    def plot_importance(self, figsize=(16,9)):
         plt.figure(figsize=sigsize)
         plt.stem(self.feature_names, self.clf.feature_importances_,'x')
         plt.xticks(rotation=90)
         plt.ylabel('importance') 
+        
+    def pickle_classifier(self):
+        pickle.dump(self.clf, open(os.path.join(self.training_path, 'classifier.p'),'wb'))
+    
+    def train(self):
+        path = self.label_path
+        feat_data = self.feat_data #probably requires computed feature data, added the flag below
+        training_dict = {}
+        labelnames = os.listdir(path)
+        flag = True
+        for label_name in labelnames:
+            X, y = training_set_per_image(label_name, path, feat_data, self.lazy)
+            training_dict[label_name] = X,y
+            if flag:
+                Xall = X
+                yall = y
+                flag = False
+            else:
+                Xall = np.concatenate([Xall,X])
+                yall = np.concatenate([yall,y])
+
+        clf =  self.clf_method
+        clf.fit(Xall, yall)
+        self.clf = clf
+        self.training_dict = training_dict
