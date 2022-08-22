@@ -360,8 +360,14 @@ class image_filter:
         coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'feature': self.feature_names}
         if store:
             if self.computed:
-                self.feature_stack.rechunk(self.outchunks)
-                self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack.compute())},
+                if not type(self.feature_stack) is np.ndarray:
+                    self.feature_stack.rechunk(self.outchunks)
+                
+                #TODO avoid this explcit conversion. however seems necessary ?...
+                # if type(self.feature_stack) is not np.ndarray: 
+                    self.feature_stack = self.feature_stack.compute()
+                    
+                self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
                          coords = coords
                          )
                 self.result.to_netcdf(outpath)
