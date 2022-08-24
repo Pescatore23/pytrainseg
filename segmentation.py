@@ -19,7 +19,7 @@ class segmentation:
         self.clf = clf
         
     def load_classifier(self):
-        self.clf = pickle.load(open(self.classifier_path, 'rb'))
+        self.clf = pickle.load(open(self.clf_path, 'rb'))
         
     def open_feature_data(self):
         self.feat_data = xr.open_dataset(self.feature_path)
