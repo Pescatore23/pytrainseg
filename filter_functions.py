@@ -69,7 +69,7 @@ class image_filter:
                 feature_dict[key] = mod_feat_dict[key]
         
         self.data_path = data_path
-        self.outpath = outpath,
+        self.outpath = outpath
         self.sigmas = sigmas        
         self.feature_dict = feature_dict
         # TODO: allow option of custom shaped chunks
@@ -98,6 +98,14 @@ class image_filter:
         da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
         
         self.original_dataset = data
+        self.data = da
+    
+    def open_lazy_data(self):
+        data = xr.open_dataset(self.data_path, chunks = 'auto')
+        da = dask.array.from_array(data.tomo)
+        print('maybe re-introducing rechunking, but for large datasets auto might be ok')
+        print('currently provided chunks are ignored')
+        self.original_dataset = data#.rechunk(self.chunks)
         self.data = da
     
     def load_raw_data(self):
@@ -365,7 +373,7 @@ class image_filter:
                 
                 #TODO avoid this explcit conversion. however seems necessary ?...
                 # if type(self.feature_stack) is not np.ndarray: 
-                    self.feature_stack = self.feature_stack.compute()
+                    # self.feature_stack = self.feature_stack.compute()
                     
                 self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
                          coords = coords

@@ -157,7 +157,8 @@ class train_segmentation:
         self.feature_names = self.feat_data['feature'].data
         self.lazy = False
     
-    def import_lazy_feature_data(self, data, lazy = True):
+    def import_lazy_feature_data(self, data, rawdata, lazy = True):
+        self.raw_data = rawdata
         self.feat_data = data
         self.feature_names = self.feat_data['feature'].data
         self.lazy = lazy
@@ -175,34 +176,35 @@ class train_segmentation:
     def load_training_set(self, c1, p1, c2, p2):
         
         data = self.feat_data['feature_stack']
+        rawdata = self.raw_data['tomo']
         
-        # this has be possible in a more elegant way!
+        # this has to be possible in a more elegant way!
         if c1 == 'x':
-            stage1 = data.sel(x=p1)
+            stage1 = rawdata.sel(x=p1)
         elif c1 == 'y':
-            stage1 = data.sel(y=p1)
+            stage1 = rawdata.sel(y=p1)
         elif c1 == 'z':
-            stage1 = data.sel(z=p1)
+            stage1 = rawdata.sel(z=p1)
         elif c1 == 'time':
             print('time cannot be first coordinate')
         
         if not c1=='time':
             if c2 == 'x':
-                im = stage1.sel(feature = 'original', x = p2).data
+                im = stage1.sel( x = p2).data #feature = 'original',
                 feat_stack = stage1.sel(x = p2).data
                 imfirst = None
             elif c2 == 'y':
-                im = stage1.sel(feature = 'original', y = p2).data
+                im = stage1.sel( y = p2).data
                 feat_stack = stage1.sel(y = p2).data
                 imfirst = None
             elif c2 == 'z':
-                im = stage1.sel(feature = 'original', z = p2).data
+                im = stage1.sel( z = p2).data
                 feat_stack = stage1.sel(z = p2).data
                 imfirst = None
             elif c2 == 'time':
-                im = stage1.sel(feature = 'original', time = p2).data
-                feat_stack = stage1.sel(time = p2).data
-                imfirst = stage1.sel(feature = 'original', time = 0).data
+                im = stage1.sel(time = p2).data
+                feat_stack = stage1.data
+                imfirst = stage1.sel( time = 0).data
             
             if self.lazy:
 #                 get the reference images directly as numpy array
