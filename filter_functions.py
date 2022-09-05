@@ -155,9 +155,12 @@ class image_filter:
             if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
-                    self.Gaussian_4D_dict['original'] = self.data
-                    self.calculated_features.append(self.data)
-                    self.feature_names.append('original')
+                    # self.Gaussian_4D_dict['original'] = self.data
+                    # self.calculated_features.append(self.data)
+                    # self.feature_names.append('original')
+                    sig = 0
+                    self.Gaussian_Blur_4D(sig)
+                    
             else:
                 self.Gaussian_Blur_4D(sigma)
                 
@@ -167,7 +170,9 @@ class image_filter:
             if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
-                    self.Gaussian_space_dict['original'] = self.data
+                    # self.Gaussian_space_dict['original'] = self.data
+                    sig = 0
+                    self.Gaussian_Blur_space(sig)
             else:
                 self.Gaussian_Blur_space(sigma)
                 
@@ -177,7 +182,9 @@ class image_filter:
             if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
-                    self.Gaussian_time_dict['original'] = self.data
+                    # self.Gaussian_time_dict['original'] = self.data
+                    sig = 0
+                    self.Gaussian_Blur_time(sig)
             else:
                 self.Gaussian_Blur_time(sigma)
                 
@@ -190,7 +197,11 @@ class image_filter:
         elif mode == 'time':
             lookup_dict = self.Gaussian_time_dict
         for comb in combinations(lookup_dict.keys(),2):
-            DG = lookup_dict[comb[1]] - lookup_dict[comb[0]]
+            G1 = lookup_dict[comb[1]]
+            G0 = lookup_dict[comb[0]]
+            # DG = lookup_dict[comb[1]] - lookup_dict[comb[0]]
+            # DG = G1-G0
+            DG = dask.array.subtract(G1,G0)
             name = ''.join(['diff_of_gauss_',mode,'_',comb[1],'_',comb[0]])
             self.calculated_features.append(DG)
             self.feature_names.append(name)
