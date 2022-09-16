@@ -56,7 +56,7 @@ class image_filter:
     def __init__(self,
                  data_path = None,
                  outpath = None,
-                 sigmas = [0,2,4],
+                 sigmas = [0,2, 4],
                  feature_dict = default_feature_dict,
                  mod_feat_dict = None,
                  chunksize = '20 MiB', #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
@@ -100,11 +100,14 @@ class image_filter:
         self.original_dataset = data
         self.data = da
     
-    def open_lazy_data(self):
-        data = xr.open_dataset(self.data_path, chunks = 'auto')
+    def open_lazy_data(self, chunks=None):
+        if chunks is None: 
+            chunks = self.chunks
+        data = xr.open_dataset(self.data_path, chunks = chunks)
         da = dask.array.from_array(data.tomo)
-        print('maybe re-introducing rechunking, but for large datasets auto might be ok')
-        print('currently provided chunks are ignored')
+        # print('maybe re-introducing rechunking, but for large datasets auto might be ok')
+        # print('smaller chunks might be better for slicewise training')
+        # print('currently provided chunks are ignored')
         self.original_dataset = data#.rechunk(self.chunks)
         self.data = da
     
@@ -205,25 +208,28 @@ class image_filter:
             name = ''.join(['diff_of_gauss_',mode,'_',comb[1],'_',comb[0]])
             self.calculated_features.append(DG)
             self.feature_names.append(name)
-            
+
     def diff_to_first_and_last(self):
-        options = self.Gaussian_space_dict.keys()
-        for opt in options:
-            DA = self.Gaussian_space_dict[opt]
-            first = DA[...,0]
-            last = DA[...,-1]
-            DF = DA.copy()
-            DL = DA.copy()
-            for i in range(DA.shape[-1]):
-                curr = DA[...,i]
-                DF[...,i] = curr-first
-                DL[...,i] = curr-last
-            name1 = 'diff_to_first_'+opt
-            name2 = 'diff_to_last_'+opt
-            self.calculated_features.append(DF)
-            self.calculated_features.append(DL)
-            self.feature_names.append(name1)
-            self.feature_names.append(name2)
+        DA = self.data
+        first = DA[...,0]
+        last = DA[...,-1]
+        ones = dask.array.ones(DA.shape, chunks=self.chunks)
+        if type(first) is np.ndarray:
+            first = first[...,None]*ones
+            last = last[...,None]*ones
+        else:
+            first = dask.array.stack([first]*DA.shape[-1], axis=-1)
+            last = dask.array.stack([last]*DA.shape[-1], axis=-1)
+        DF = DA - first
+        DL = DA - last
+        self.calculated_features.append(DF)
+        self.feature_names.append('diff_to_first_')
+        self.calculated_features.append(DL)
+        self.feature_names.append('diff_to_last_')
+        self.feature_names.append('first_')
+        self.calculated_features.append(first)
+        self.feature_names.append('last_')
+        self.calculated_features.append(last)
             
             
     def Gradients(self):
@@ -357,7 +363,8 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
-        self.rank_filter_stack()
+        self.diff_to_first_and_last() 
+        # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
         self.prepared = True
 
     

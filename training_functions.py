@@ -12,6 +12,7 @@ import os
 from skimage import io, exposure
 import matplotlib.pyplot as plt
 import numpy as np
+import dask 
 import pickle
 
 #the classifier
@@ -58,7 +59,7 @@ def training_function(im, truth, feat_stack, training_dict, slice_name, clf):
         flag = True
         Xall = training_dict[slices[0]][0]
         yall = training_dict[slices[0]][1]
-        for i in range(1,len(slices)):
+        for i in range(len(slices)): #why was there 1, in range ?
             Xall = np.concatenate([Xall, training_dict[slices[i]][0]])
             yall = np.concatenate([yall, training_dict[slices[i]][1]])
             
@@ -118,14 +119,14 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
         feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
     else:
         print('coordinates not found')
-    if lazy:
-        print('Need to actually calculate the features for each slice, seems inefficient')
-    #   not sure how efficient this is
-    #   multiple training slices might be faster with the chunks
-    #   probably getting the feature stack at least as persist is better
-        feat_stack = feat_stack.compute()
-    else:
-        if type(feat_stack) is not np.ndarray:
+    # if lazy:
+    #     print('Need to actually calculate the features for each slice, seems inefficient')
+    # #   not sure how efficient this is
+    # #   multiple training slices might be faster with the chunks
+    # #   probably getting the feature stack at least as persist is better
+    #     feat_stack = feat_stack.compute()
+    # else:
+    if type(feat_stack) is not np.ndarray:
             feat_stack = feat_stack.compute()
     
     X, y = extract_training_data(truth, feat_stack)
@@ -178,39 +179,43 @@ class train_segmentation:
         data = self.feat_data['feature_stack']
         rawdata = self.raw_data['tomo']
         
+        
         # this has to be possible in a more elegant way!
         if c1 == 'x':
             stage1 = rawdata.sel(x=p1)
+            stage1feat = data.sel(x=p1)
         elif c1 == 'y':
             stage1 = rawdata.sel(y=p1)
+            stage1feat = data.sel(y=p1)
         elif c1 == 'z':
             stage1 = rawdata.sel(z=p1)
+            stage1feat = data.sel(z=p1)
         elif c1 == 'time':
             print('time cannot be first coordinate')
         
         if not c1=='time':
             if c2 == 'x':
                 im = stage1.sel( x = p2).data #feature = 'original',
-                feat_stack = stage1.sel(x = p2).data
+                feat_stack = stage1feat.sel(x = p2).data
                 imfirst = None
             elif c2 == 'y':
                 im = stage1.sel( y = p2).data
-                feat_stack = stage1.sel(y = p2).data
+                feat_stack = stage1feat.sel(y = p2).data
                 imfirst = None
             elif c2 == 'z':
                 im = stage1.sel( z = p2).data
-                feat_stack = stage1.sel(z = p2).data
+                feat_stack = stage1feat.sel(z = p2).data
                 imfirst = None
             elif c2 == 'time':
                 im = stage1.sel(time = p2).data
-                feat_stack = stage1.data
-                imfirst = stage1.sel( time = 0).data
+                feat_stack = stage1feat.sel(time = p2).data
+                imfirst = stage1.sel(time = 0).data
             
             if self.lazy:
 #                 get the reference images directly as numpy array
-                im = im.compute()
-                if imfirst is not None:
-                    imfirst = imfirst.compute()
+                # im = im.compute()
+                # if imfirst is not None:
+                    # imfirst = imfirst.compute()
                 #already start calculating the feature stack
                 feat_stack.persist()
                 self.current_computed = False
@@ -227,7 +232,7 @@ class train_segmentation:
             
             if imfirst is not None:
                 diff = im-imfirst
-                diff = diff/diff.max()*255
+                # diff = diff/diff.max()*255
                 self.current_diff_im = diff
             else:
                 self.current_diff_im = None
@@ -252,100 +257,6 @@ class train_segmentation:
             self.current_truthpath = truthpath
             self.current_slice_name = slice_name
             #TODO: maybe keep lazy computed feature stacks of older slices somewhere and purge if using up too much RAM
-    
-#     def interface(self, alpha=0.15):
-#         # TODO: add ipycanvas stuff
-#         im8 = self.current_im8
-#         resultim = self.current_result
-        
-#         width = im8.shape[1]
-#         height = im8.shape[0]
-
-#         Mcanvas = MultiCanvas(4, width=width, height=height)
-#         background = Mcanvas[0]
-#         resultdisplay = Mcanvas[2]
-#         truthdisplay = Mcanvas[1]
-#         canvas = Mcanvas[3]
-#         canvas.sync_image_data = True
-
-#         drawing = False
-#         position = None
-#         shape = []
-
-#         def on_mouse_down(x, y):
-#             global drawing
-#             global position
-#             global shape
-
-#             drawing = True
-#             position = (x, y)
-#             shape = [position]
-
-#         def on_mouse_move(x, y):
-#             global drawing
-#             global position
-#             global shape
-
-#             if not drawing:
-#                 return
-
-#             with hold_canvas():
-#                 canvas.stroke_line(position[0], position[1], x, y)
-
-#                 position = (x, y)
-
-#             shape.append(position)
-
-#         def on_mouse_up(x, y):
-#             global drawing
-#             global positiondu
-#             global shape
-
-#             drawing = False
-
-#             with hold_canvas():
-#                 canvas.stroke_line(position[0], position[1], x, y)
-#                 canvas.fill_polygon(shape)
-
-#             shape = []
-
-#         image_data = np.stack((im8, im8, im8), axis=2)
-#         # image_data = np.stack((diff*2, diff*2, diff*2), axis=2)
-#         background.put_image_data(image_data, 0, 0)
-
-#         resultdisplay.global_alpha = alpha
-        
-#         if np.any(resultim>0):
-#             result_data = np.stack((255*(resultim==0), 255*(resultim==1), 255*(resultim==2)), axis=2)
-#         else:
-#             result_data = np.stack((0*resultim, 0*resultim, 0*resultim), axis=2)
-#         resultdisplay.put_image_data(result_data, 0, 0)
-
-#         canvas.on_mouse_down(on_mouse_down)
-#         canvas.on_mouse_move(on_mouse_move)
-#         canvas.on_mouse_up(on_mouse_up)
-
-#         # canvas.stroke_style = "#749cb8"
-#         # canvas.global_alpha = 0.75
-
-#         picker = ColorPicker(description="Color:", value="#ff0000")
-#         slidealpha = IntSlider(description="Result overlay", value=0.15)
-
-#         link((picker, "value"), (canvas, "stroke_style"))
-#         link((picker, "value"), (canvas, "fill_style"))
-#         # link((slidealpha, "value"), (resultdisplay, "global_alpha"))
-
-#         return HBox((Mcanvas, picker, slidealpha))
-#         #print('paint image with #ff0000 for air, #00ff00 for water and #0000ff for fiber')
-        
-#     def fetch_labels(self):
-#         label_set = canvas.get_image_data()
-
-#         self.current_truth[label_set[:,:,0]>0] = 1
-#         self.current_truth[label_set[:,:,1]>0] = 2
-#         self.current_truth[label_set[:,:,2]>0] = 4
-
-#         imageio.imsave(self.current_truthpath, self.current_truth)
         
     def train_slice(self):
         #fetch variables
@@ -356,21 +267,24 @@ class train_segmentation:
         feat_stack = self.current_feat_stack
         
         #re-consider these lines
-        if self.lazy and not self.current_computed:
+        if self.lazy and not self.current_computed and type(feat_stack) is not np.ndarray:
             print('now actually calculating the features')
             # self.current_feat_stack.rechunk('auto') #why rechunk 'auto' ?! if anything should be something small fot massive parallel
             feat_stack = feat_stack.compute() 
             self.current_computed = True
         if type(feat_stack) is not np.ndarray:
+            print('feat_stack is not a numpy array!')
             feat_stack = feat_stack.compute()      
-
+        
+        self.current_feat_stack = feat_stack
         #train
         # print('training ...')
         resultim, clf, training_dict = training_function(im, truth, feat_stack, training_dict, slice_name, self.clf_method)
 
         # update variables
+        
         self.current_result = resultim
-        self.training_dict = training_dict #this necessary ?
+        self.training_dict = training_dict #this necessary ? yes!
         self.clf = clf
         
     def plot_importance(self, figsize=(16,9)):
@@ -399,6 +313,27 @@ class train_segmentation:
                 Xall = np.concatenate([Xall,X])
                 yall = np.concatenate([yall,y])
 
+        clf =  self.clf_method
+        clf.fit(Xall, yall)
+        self.clf = clf
+        self.training_dict = training_dict
+        
+    def train_parallel(self):
+    #come up with a way to train() in parallel
+    # maybe with dask.delayed
+        path = self.label_path
+        feat_data = self.feat_data
+        training_dict = {}
+        labelnames = os.listdir(path)
+        XX = []
+        yy = []
+        for label_name in labelnames:
+            X, y = dask.delayed(training_set_per_image)(label_name, path, feat_data.persist(), self.lazy)
+            training_dict[label_name] = X,y
+            XX.append(X)
+            yy.append(y)
+        Xall = np.concatenate(XX)
+        yall = np.concatenate(yy)
         clf =  self.clf_method
         clf.fit(Xall, yall)
         self.clf = clf
