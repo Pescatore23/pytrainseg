@@ -213,23 +213,27 @@ class image_filter:
         DA = self.data
         first = DA[...,0]
         last = DA[...,-1]
-        ones = dask.array.ones(DA.shape, chunks=self.chunks)
+        if type(first) is not np.ndarray:
+            first = first.compute()
+            last = last.compute()
+        # ones = dask.array.ones(DA.shape, chunks=self.chunks)
         if type(first) is np.ndarray:
-            first = first[...,None]*ones
-            last = last[...,None]*ones
+            firsts = dask.array.stack([first]*DA.shape[-1], axis=-1)
+            lasts = dask.array.stack([last]*DA.shape[-1], axis=-1)
+            firsts = firsts.rechunk(DA.chunksize)
+            lasts = lasts.rechunk(DA.chunksize)
+            DF = DA - firsts
+            DL = DA - lasts
+            self.calculated_features.append(DF)
+            self.feature_names.append('diff_to_first_')
+            self.calculated_features.append(DL)
+            self.feature_names.append('diff_to_last_')
+            self.feature_names.append('first_')
+            self.calculated_features.append(firsts)
+            self.feature_names.append('last_')
+            self.calculated_features.append(lasts)
         else:
-            first = dask.array.stack([first]*DA.shape[-1], axis=-1)
-            last = dask.array.stack([last]*DA.shape[-1], axis=-1)
-        DF = DA - first
-        DL = DA - last
-        self.calculated_features.append(DF)
-        self.feature_names.append('diff_to_first_')
-        self.calculated_features.append(DL)
-        self.feature_names.append('diff_to_last_')
-        self.feature_names.append('first_')
-        self.calculated_features.append(first)
-        self.feature_names.append('last_')
-        self.calculated_features.append(last)
+            print('Diff first and last is an unexplainable pain in the ass, solve this at one point')
             
             
     def Gradients(self):
@@ -354,7 +358,15 @@ class image_filter:
     
     # TODO: include feature selection either in compute (better) or save
     # TODO: maybe add purge function
-    def prepare(self):
+    def prepare(self):   
+        self.Gaussian_4D_dict = {}
+        self.Gaussian_space_dict = {}
+        self.Gaussian_time_dict = {}
+        self.Gradient_dict = {}
+        self.calculated_features = []
+        self.feature_names = []
+        
+        self.diff_to_first_and_last() 
         self.Gaussian_4D_stack()
         self.diff_Gaussian('4D')
         self.Gradients()
@@ -363,7 +375,6 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
-        self.diff_to_first_and_last() 
         # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
         self.prepared = True
 

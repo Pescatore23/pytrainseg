@@ -59,7 +59,7 @@ def training_function(im, truth, feat_stack, training_dict, slice_name, clf):
         flag = True
         Xall = training_dict[slices[0]][0]
         yall = training_dict[slices[0]][1]
-        for i in range(len(slices)): #why was there 1, in range ?
+        for i in range(1,len(slices)): #why was there 1, in range ? because first initiates the Xall, np.stack could be an alternative way
             Xall = np.concatenate([Xall, training_dict[slices[i]][0]])
             yall = np.concatenate([yall, training_dict[slices[i]][1]])
             
