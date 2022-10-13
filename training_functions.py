@@ -4,7 +4,7 @@ Created on Wed Aug 17 16:04:34 2022
 
 to be loaded in Jupyter
 
-
+TODO: store git commit sha
 @author: fische_r
 """
 import xarray as xr
@@ -293,6 +293,9 @@ class train_segmentation:
         plt.xticks(rotation=90)
         plt.ylabel('importance') 
         
+    def pickle_training_dict(self):
+        pickle.dump(self.training_dict, open(os.path.join(self.training_path, 'training_dict.p'),'wb'))
+        
     def pickle_classifier(self):
         pickle.dump(self.clf, open(os.path.join(self.training_path, 'classifier.p'),'wb'))
     
@@ -303,6 +306,7 @@ class train_segmentation:
         labelnames = os.listdir(path)
         flag = True
         for label_name in labelnames:
+            print(label_name)
             X, y = training_set_per_image(label_name, path, feat_data, self.lazy)
             training_dict[label_name] = X,y
             if flag:
@@ -317,6 +321,7 @@ class train_segmentation:
         clf.fit(Xall, yall)
         self.clf = clf
         self.training_dict = training_dict
+        
         
     def train_parallel(self):
     #come up with a way to train() in parallel

@@ -10,6 +10,7 @@ transient dimension, e.g. time, should be 4th dimension of input data
 
 
 TODO: add GPU support (CUDA, cupy, cucim)
+TODO: store git commit sha
 
 """
 
@@ -75,6 +76,10 @@ class image_filter:
         # TODO: allow option of custom shaped chunks
         self.chunks = chunksize
         self.outchunks = outchunks
+        
+        #wheter considering means for first and last time step
+        self.take_means = True
+        self.num_means = 7
         
         # not sure if this is clever, does dask understand that this data is reused?
         self.Gaussian_4D_dict = {}
@@ -209,10 +214,15 @@ class image_filter:
             self.calculated_features.append(DG)
             self.feature_names.append(name)
 
-    def diff_to_first_and_last(self):
+    def diff_to_first_and_last(self, take_mean, means):
+#         TODO: take temporal mean/median for first and last
         DA = self.data
-        first = DA[...,0]
-        last = DA[...,-1]
+        if take_mean:
+            first = DA[...,:means].mean(axis=-1)
+            last = DA[...,-means:].mean(axis=-1)
+        else:
+            first = DA[...,0]
+            last = DA[...,-1]
         if type(first) is not np.ndarray:
             first = first.compute()
             last = last.compute()
@@ -358,6 +368,7 @@ class image_filter:
     
     # TODO: include feature selection either in compute (better) or save
     # TODO: maybe add purge function
+    # TODO: maybe add iterative segmentation results, i.e. median filter of segmentation
     def prepare(self):   
         self.Gaussian_4D_dict = {}
         self.Gaussian_space_dict = {}
@@ -366,7 +377,7 @@ class image_filter:
         self.calculated_features = []
         self.feature_names = []
         
-        self.diff_to_first_and_last() 
+        self.diff_to_first_and_last(self.take_means, self.num_means) 
         self.Gaussian_4D_stack()
         self.diff_Gaussian('4D')
         self.Gradients()
@@ -376,6 +387,7 @@ class image_filter:
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
         # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
+        
         self.prepared = True
 
     
