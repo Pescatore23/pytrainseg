@@ -10,6 +10,7 @@ transient dimension, e.g. time, should be 4th dimension of input data
 
 
 TODO: add GPU support (CUDA, cupy, cucim)
+TODO: store git commit sha
 
 """
 
@@ -56,7 +57,7 @@ class image_filter:
     def __init__(self,
                  data_path = None,
                  outpath = None,
-                 sigmas = [0,2,4],
+                 sigmas = [0,2, 4],
                  feature_dict = default_feature_dict,
                  mod_feat_dict = None,
                  chunksize = '20 MiB', #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
@@ -69,12 +70,16 @@ class image_filter:
                 feature_dict[key] = mod_feat_dict[key]
         
         self.data_path = data_path
-        self.outpath = outpath,
+        self.outpath = outpath
         self.sigmas = sigmas        
         self.feature_dict = feature_dict
         # TODO: allow option of custom shaped chunks
         self.chunks = chunksize
         self.outchunks = outchunks
+        
+        #wheter considering means for first and last time step
+        self.take_means = True
+        self.num_means = 7
         
         # not sure if this is clever, does dask understand that this data is reused?
         self.Gaussian_4D_dict = {}
@@ -98,6 +103,17 @@ class image_filter:
         da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
         
         self.original_dataset = data
+        self.data = da
+    
+    def open_lazy_data(self, chunks=None):
+        if chunks is None: 
+            chunks = self.chunks
+        data = xr.open_dataset(self.data_path, chunks = chunks)
+        da = dask.array.from_array(data.tomo)
+        # print('maybe re-introducing rechunking, but for large datasets auto might be ok')
+        # print('smaller chunks might be better for slicewise training')
+        # print('currently provided chunks are ignored')
+        self.original_dataset = data#.rechunk(self.chunks)
         self.data = da
     
     def load_raw_data(self):
@@ -147,9 +163,12 @@ class image_filter:
             if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
-                    self.Gaussian_4D_dict['original'] = self.data
-                    self.calculated_features.append(self.data)
-                    self.feature_names.append('original')
+                    # self.Gaussian_4D_dict['original'] = self.data
+                    # self.calculated_features.append(self.data)
+                    # self.feature_names.append('original')
+                    sig = 0
+                    self.Gaussian_Blur_4D(sig)
+                    
             else:
                 self.Gaussian_Blur_4D(sigma)
                 
@@ -159,7 +178,9 @@ class image_filter:
             if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
-                    self.Gaussian_space_dict['original'] = self.data
+                    # self.Gaussian_space_dict['original'] = self.data
+                    sig = 0
+                    self.Gaussian_Blur_space(sig)
             else:
                 self.Gaussian_Blur_space(sigma)
                 
@@ -169,7 +190,9 @@ class image_filter:
             if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
-                    self.Gaussian_time_dict['original'] = self.data
+                    # self.Gaussian_time_dict['original'] = self.data
+                    sig = 0
+                    self.Gaussian_Blur_time(sig)
             else:
                 self.Gaussian_Blur_time(sigma)
                 
@@ -182,29 +205,45 @@ class image_filter:
         elif mode == 'time':
             lookup_dict = self.Gaussian_time_dict
         for comb in combinations(lookup_dict.keys(),2):
-            DG = lookup_dict[comb[1]] - lookup_dict[comb[0]]
+            G1 = lookup_dict[comb[1]]
+            G0 = lookup_dict[comb[0]]
+            # DG = lookup_dict[comb[1]] - lookup_dict[comb[0]]
+            # DG = G1-G0
+            DG = dask.array.subtract(G1,G0)
             name = ''.join(['diff_of_gauss_',mode,'_',comb[1],'_',comb[0]])
             self.calculated_features.append(DG)
             self.feature_names.append(name)
-            
-    def diff_to_first_and_last(self):
-        options = self.Gaussian_space_dict.keys()
-        for opt in options:
-            DA = self.Gaussian_space_dict[opt]
+
+    def diff_to_first_and_last(self, take_mean, means):
+#         TODO: take temporal mean/median for first and last
+        DA = self.data
+        if take_mean:
+            first = DA[...,:means].mean(axis=-1)
+            last = DA[...,-means:].mean(axis=-1)
+        else:
             first = DA[...,0]
             last = DA[...,-1]
-            DF = DA.copy()
-            DL = DA.copy()
-            for i in range(DA.shape[-1]):
-                curr = DA[...,i]
-                DF[...,i] = curr-first
-                DL[...,i] = curr-last
-            name1 = 'diff_to_first_'+opt
-            name2 = 'diff_to_last_'+opt
+        if type(first) is not np.ndarray:
+            first = first.compute()
+            last = last.compute()
+        # ones = dask.array.ones(DA.shape, chunks=self.chunks)
+        if type(first) is np.ndarray:
+            firsts = dask.array.stack([first]*DA.shape[-1], axis=-1)
+            lasts = dask.array.stack([last]*DA.shape[-1], axis=-1)
+            firsts = firsts.rechunk(DA.chunksize)
+            lasts = lasts.rechunk(DA.chunksize)
+            DF = DA - firsts
+            DL = DA - lasts
             self.calculated_features.append(DF)
+            self.feature_names.append('diff_to_first_')
             self.calculated_features.append(DL)
-            self.feature_names.append(name1)
-            self.feature_names.append(name2)
+            self.feature_names.append('diff_to_last_')
+            self.feature_names.append('first_')
+            self.calculated_features.append(firsts)
+            self.feature_names.append('last_')
+            self.calculated_features.append(lasts)
+        else:
+            print('Diff first and last is an unexplainable pain in the ass, solve this at one point')
             
             
     def Gradients(self):
@@ -329,7 +368,16 @@ class image_filter:
     
     # TODO: include feature selection either in compute (better) or save
     # TODO: maybe add purge function
-    def prepare(self):
+    # TODO: maybe add iterative segmentation results, i.e. median filter of segmentation
+    def prepare(self):   
+        self.Gaussian_4D_dict = {}
+        self.Gaussian_space_dict = {}
+        self.Gaussian_time_dict = {}
+        self.Gradient_dict = {}
+        self.calculated_features = []
+        self.feature_names = []
+        
+        self.diff_to_first_and_last(self.take_means, self.num_means) 
         self.Gaussian_4D_stack()
         self.diff_Gaussian('4D')
         self.Gradients()
@@ -338,7 +386,8 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
-        self.rank_filter_stack()
+        # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
+        
         self.prepared = True
 
     
@@ -365,7 +414,7 @@ class image_filter:
                 
                 #TODO avoid this explcit conversion. however seems necessary ?...
                 # if type(self.feature_stack) is not np.ndarray: 
-                    self.feature_stack = self.feature_stack.compute()
+                    # self.feature_stack = self.feature_stack.compute()
                     
                 self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
                          coords = coords
