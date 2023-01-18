@@ -365,6 +365,31 @@ class image_filter:
                 self.rank_like_filter(option, sigma)
                 self.dynamic_rank_like_filter(option, sigma)
                 
+    def pixel_coordinates(self):
+        #create 3 arrays with the pixel coordinates
+        da = self.data
+#         coords = dask.array.where(da)
+       
+#         for i in range(3):
+#             loc = coords[i].compute().reshape(da.shape) #compute() to know shape of coords, maybe find another way
+#             self.calculated_features.append(loc)
+#             self.feature_names.append('loc_'+'xyz'[i])
+
+        # the following looks less elegant, but seems more compatible with dask
+        # TODO: check performance
+        loc_x = dask.array.ones(da.shape)*dask.array.arange(da.shape[0])[:,None, None, None]
+        self.calculated_features.append(loc_x)
+        self.feature_names.append('loc_'+'x')
+        
+        loc_y = dask.array.ones(da.shape)*dask.array.arange(da.shape[1])[None,:, None, None]
+        self.calculated_features.append(loc_y)
+        self.feature_names.append('loc_'+'y')
+        
+        loc_z = dask.array.ones(da.shape)*dask.array.arange(da.shape[2])[None, None,:, None]
+        self.calculated_features.append(loc_z)
+        self.feature_names.append('loc_'+'z')
+
+        
     
     # TODO: include feature selection either in compute (better) or save
     # TODO: maybe add purge function
@@ -386,6 +411,7 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
+        self.pixel_coordinates()
         # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
         
         self.prepared = True
