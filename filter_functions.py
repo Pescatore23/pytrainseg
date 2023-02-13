@@ -245,6 +245,13 @@ class image_filter:
         else:
             print('Diff first and last is an unexplainable pain in the ass, solve this at one point')
             
+    def time_mean(self):
+        DA = self.data
+        mean = DA.mean(axis=-1)
+        means = dask.array.stack([mean]*DA.shape[-1], axis=-1)
+        self.calculated_features.append(means)
+        self.feature_names.append('full_temporal_mean_')
+            
             
     def Gradients(self):
         for key in self.Gaussian_4D_dict:
@@ -412,6 +419,7 @@ class image_filter:
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
         self.pixel_coordinates()
+        # self.time_mean()
         # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
         
         self.prepared = True
