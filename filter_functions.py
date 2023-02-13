@@ -419,7 +419,7 @@ class image_filter:
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
         self.pixel_coordinates()
-        # self.time_mean()
+        self.time_mean()
         # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
         
         self.prepared = True
