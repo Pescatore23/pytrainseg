@@ -61,6 +61,7 @@ class image_filter:
                  feature_dict = default_feature_dict,
                  mod_feat_dict = None,
                  chunksize = '20 MiB', #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
+                # auto chunking of the feature stack appears to be more useful , --> potentially remove the rechunking
                  outchunks = '300 MiB',
                  ranks = ['maximum', 'minimum', 'median'], #, 'mean'
                  sigma_t = 40
@@ -245,13 +246,35 @@ class image_filter:
         else:
             print('Diff first and last is an unexplainable pain in the ass, solve this at one point')
             
-    def time_mean(self):
+    def time_stats(self):
         DA = self.data
         mean = DA.mean(axis=-1)
+        median = dask.array.median(DA, axis = -1)
+        std = DA.std(axis=-1)
+        skew = (mean - median)/std
+        minimum = DA.min(axis=-1)
+        maximum = DA.max(axis=-1)
+        
         means = dask.array.stack([mean]*DA.shape[-1], axis=-1)
+        medians = dask.array.stack([median]*DA.shape[-1], axis=-1)
+        skews = dask.array.stack([skew]*DA.shape[-1], axis=-1)
+        mins = dask.array.stack([minimum]*DA.shape[-1], axis=-1)
+        maxs = dask.array.stack([maximum]*DA.shape[-1], axis=-1)
+        
+        maxmin = maxs - mins
+        
         self.calculated_features.append(means)
         self.feature_names.append('full_temporal_mean_')
-            
+        self.calculated_features.append(medians)
+        self.feature_names.append('full_temporal_median_')
+        self.calculated_features.append(skews)
+        self.feature_names.append('full_temporal_skews_')
+        self.calculated_features.append(mins)
+        self.feature_names.append('full_temporal_mins_')
+        self.calculated_features.append(maxs)
+        self.feature_names.append('full_temporal_maxs_')
+        self.calculated_features.append(maxmin)
+        self.feature_names.append('full_temporal_maxmin_diff_')
             
     def Gradients(self):
         for key in self.Gaussian_4D_dict:
@@ -370,7 +393,7 @@ class image_filter:
         for option in self.considered_ranks:
             for sigma in self.sigmas:
                 self.rank_like_filter(option, sigma)
-                self.dynamic_rank_like_filter(option, sigma)
+                # self.dynamic_rank_like_filter(option, sigma)
                 
     def pixel_coordinates(self):
         #create 3 arrays with the pixel coordinates
@@ -401,6 +424,7 @@ class image_filter:
     # TODO: include feature selection either in compute (better) or save
     # TODO: maybe add purge function
     # TODO: maybe add iterative segmentation results, i.e. median filter of segmentation
+    # TODO: don't create 4D features for time independent features (like coordinates, time stats) to save RAM
     def prepare(self):   
         self.Gaussian_4D_dict = {}
         self.Gaussian_space_dict = {}
@@ -419,8 +443,9 @@ class image_filter:
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
         self.pixel_coordinates()
-        self.time_mean()
-        # self.rank_filter_stack() #you have to load the entire raw data set for this filter --> not so good for many time steps
+        # self.rank_filter_stack() #you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
+        self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
+        
         
         self.prepared = True
 
@@ -433,7 +458,7 @@ class image_filter:
     
     def compute(self):
         # self.feature_stack = self.feature_stack.compute()
-        self.feature_stack = self.feature_stack.persist() #not sure, but persist should be preferred
+        self.feature_stack = self.feature_stack.persist() #not sure, but apparently persist should be preferred
         self.computed = True
         
     def make_xarray_nc(self, outpath = None, store=False):
