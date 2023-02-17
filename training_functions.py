@@ -322,7 +322,14 @@ class train_segmentation:
         self.clf = clf
         self.training_dict = training_dict
         
-        
+    def train_with_existing_label_set(self):
+        #variant to above attempting to avoid redundant calculations, however, there is probably nromally not that much to gain
+        path = self.label_path
+        feat_data = self.feat_data #
+        training_dict = {}
+        labelnames = os.listdir(path)
+        # TODO
+    
     def train_parallel(self):
     #come up with a way to train() in parallel
     # maybe with dask.delayed

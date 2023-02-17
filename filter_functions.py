@@ -60,7 +60,7 @@ class image_filter:
                  sigmas = [0,2, 4],
                  feature_dict = default_feature_dict,
                  mod_feat_dict = None,
-                 chunksize = '20 MiB', #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
+                 chunksize = (64,64,64,1), #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
                 # auto chunking of the feature stack appears to be more useful , --> potentially remove the rechunking
                  outchunks = '300 MiB',
                  ranks = ['maximum', 'minimum', 'median'], #, 'mean'
@@ -99,6 +99,7 @@ class image_filter:
     # TODO: currently loads full dataset into memory, consider aligning desired chunk already for original dataset to avoid rechunking
     # .rechunk() causes problems downstream: "Assertion error" , WTF?!
     # if original data soe not fit in RAM, rechunk, store to disk and load again?
+    # rechunk apparently sometimes only adds an addtional graph layer linking initial chunks
     def open_raw_data(self):
         data = xr.open_dataset(self.data_path)
         da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
@@ -250,30 +251,33 @@ class image_filter:
         DA = self.data
         mean = DA.mean(axis=-1)
         # median = dask.array.median(DA, axis = -1)
-        std = DA.std(axis=-1)
+        # std = DA.std(axis=-1)
         # skew = (mean - median)/std
-        # minimum = DA.min(axis=-1)
+        minimum = DA.min(axis=-1)
         # maximum = DA.max(axis=-1)
         
         means = dask.array.stack([mean]*DA.shape[-1], axis=-1)
-        stds = dask.array.stack([std]*DA.shape[-1], axis=-1)
+        # stds = dask.array.stack([std]*DA.shape[-1], axis=-1)
         # medians = dask.array.stack([median]*DA.shape[-1], axis=-1)
         # skews = dask.array.stack([skew]*DA.shape[-1], axis=-1)
-        # mins = dask.array.stack([minimum]*DA.shape[-1], axis=-1)
+        mins = dask.array.stack([minimum]*DA.shape[-1], axis=-1)
         # maxs = dask.array.stack([maximum]*DA.shape[-1], axis=-1)
         
-        # maxmin = maxs - mins
+        diff_min = DA - minimum[...,None]
+        # TODO: consider diffs to gaussian filtered mimimum, and diffs of gaussians
         
         self.calculated_features.append(means)
         self.feature_names.append('full_temporal_mean_')
-        self.calculated_features.append(stds)
-        self.feature_names.append('full_temporal_std_')
+        # self.calculated_features.append(stds)
+        # self.feature_names.append('full_temporal_std_')
         # self.calculated_features.append(medians)
         # self.feature_names.append('full_temporal_median_')
         # self.calculated_features.append(skews)
         # self.feature_names.append('full_temporal_skews_')
-        # self.calculated_features.append(mins)
-        # self.feature_names.append('full_temporal_mins_')
+        self.calculated_features.append(mins)
+        self.feature_names.append('full_temporal_mins_')
+        self.calculated_features.append(diff_min)
+        self.feature_names.append('diff_to_min_')
         # self.calculated_features.append(maxs)
         # self.feature_names.append('full_temporal_maxs_')
         # self.calculated_features.append(maxmin)
