@@ -443,15 +443,15 @@ class image_filter:
         # self.calculated_features.append(loc_z)
         # self.feature_names.append('loc_'+'z')
         
-        loc_x = dask.array.ones(da[:-1].shape)*dask.array.arange(da.shape[0])[:,None, None]
+        loc_x = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[0])[:,None, None]
         self.feature_names_time_independent.append('loc_'+'x')
         self.calculated_features_time_independent.append(loc_x)
         
-        loc_y = dask.array.ones(da[:-1].shape)*dask.array.arange(da.shape[1])[None,:, None]
+        loc_y = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[1])[None,:, None]
         self.feature_names_time_independent.append('loc_'+'y')
         self.calculated_features_time_independent.append(loc_y)
         
-        loc_z = dask.array.ones(da[:-1].shape)*dask.array.arange(da.shape[2])[None, None, :]
+        loc_z = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[2])[None, None, :]
         self.feature_names_time_independent.append('loc_'+'z')
         self.calculated_features_time_independent.append(loc_z)
 

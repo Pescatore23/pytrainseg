@@ -103,42 +103,47 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
     # print(label_name)
     # print(c1, p1, c2, p2)
     truth = io.imread(os.path.join(trainingpath, label_name))
+    if np.any(truth>0):
+        
+        # temporary workaround, make general
+        if c1 == 'x' and c2 == 'time':
+            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time = p2).data
+        elif c1 == 'x' and c2 == 'y':
+            feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
+        elif c1 == 'x' and c2 == 'z':
+            feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2).data
+        elif c1 == 'y' and c2 == 'z':
+            feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
+        elif c1 == 'y' and c2 == 'time':
+            feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time = p2).data
+        elif c1 == 'z' and c2 == 'time':
+            feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time = p2).data
+        else:
+            print('coordinates not found')
+        # if lazy:
+        #     print('Need to actually calculate the features for each slice, seems inefficient')
+        # #   not sure how efficient this is
+        # #   multiple training slices might be faster with the chunks
+        # #   probably getting the feature stack at least as persist is better
+        #     feat_stack = feat_stack.compute()
+        # else:
+        if type(feat_stack) is not np.ndarray:
+                feat_stack = feat_stack.compute()
+                
+        feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
+        
+        X, y = extract_training_data(truth, feat_stack)
+        return X,y
     
-    # temporary workaround, make general
-    if c1 == 'x' and c2 == 'time':
-        feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
-        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time = p2).data
-    elif c1 == 'x' and c2 == 'y':
-        feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
-        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
-    elif c1 == 'x' and c2 == 'z':
-        feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
-        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2).data
-    elif c1 == 'y' and c2 == 'z':
-        feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
-        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
-    elif c1 == 'y' and c2 == 'time':
-        feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
-        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time = p2).data
-    elif c1 == 'z' and c2 == 'time':
-        feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
-        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time = p2).data
     else:
-        print('coordinates not found')
-    # if lazy:
-    #     print('Need to actually calculate the features for each slice, seems inefficient')
-    # #   not sure how efficient this is
-    # #   multiple training slices might be faster with the chunks
-    # #   probably getting the feature stack at least as persist is better
-    #     feat_stack = feat_stack.compute()
-    # else:
-    if type(feat_stack) is not np.ndarray:
-            feat_stack = feat_stack.compute()
-            
-    feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
-    
-    X, y = extract_training_data(truth, feat_stack)
-    return X,y
+        return 'no labels', 'y'
+        print('label image is empty')
 
 class train_segmentation:
     def __init__(self,
@@ -347,23 +352,30 @@ class train_segmentation:
         feat_data = self.feat_data #probably requires computed feature data, added the flag below
         training_dict = {}
         labelnames = os.listdir(path)
-        flag = True
-        for label_name in labelnames:
-            print(label_name)
-            X, y = training_set_per_image(label_name, path, feat_data, self.lazy)
-            training_dict[label_name] = X,y
+        if len(labelnames)>0:
+            print('training with existing label images')
+            flag = True
+            for label_name in labelnames:
+                print(label_name)
+                X, y = training_set_per_image(label_name, path, feat_data, self.lazy)
+                if not X == 'no labels':
+                    training_dict[label_name] = X,y
+                    if flag:
+                        Xall = X
+                        yall = y
+                        flag = False
+                    else:
+                        Xall = np.concatenate([Xall,X])
+                        yall = np.concatenate([yall,y])
             if flag:
-                Xall = X
-                yall = y
-                flag = False
+                print('no label image actually contained labels')
             else:
-                Xall = np.concatenate([Xall,X])
-                yall = np.concatenate([yall,y])
-
-        clf =  self.clf_method
-        clf.fit(Xall, yall)
-        self.clf = clf
-        self.training_dict = training_dict
+                clf =  self.clf_method
+                clf.fit(Xall, yall)
+                self.clf = clf
+                self.training_dict = training_dict
+        else:
+            print('no label images found, start creating some')
         
     # def train_with_existing_label_set(self):
         #variant to above attempting to avoid redundant calculations, however, there is probably nromally not that much to gain
