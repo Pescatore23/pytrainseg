@@ -108,7 +108,7 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
         # temporary workaround, make general
         if c1 == 'x' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0).data
         elif c1 == 'x' and c2 == 'y':
             feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
             feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
@@ -120,10 +120,10 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
             feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
         elif c1 == 'y' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0).data
         elif c1 == 'z' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0).data
         else:
             print('coordinates not found')
         # if lazy:
@@ -175,10 +175,10 @@ class train_segmentation:
         self.raw_data = rawdata
         self.feat_data = data
         # self.feat_data_tme_idp = data['feature_stack_time_independent']
-        self.feature_names = list(self.feat_data['feature'].data)
-        self.feature_names_time_independent = list(self.feat_data['feature_time_independent'].data)
+        self.feature_names = self.feat_data['feature'].data
+        self.feature_names_time_independent = self.feat_data['feature_time_independent'].data
         
-        self.combined_feature_names = self.feature_names + self.feature_names_time_independent
+        self.combined_feature_names = list(self.feature_names) + list(self.feature_names_time_independent)
         self.lazy = lazy
 
     def suggest_training_set(self):
@@ -284,7 +284,7 @@ class train_segmentation:
         
         if c1 == 'x' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0).data
         elif c1 == 'x' and c2 == 'y':
             feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
             feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
@@ -296,10 +296,10 @@ class train_segmentation:
             feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
         elif c1 == 'y' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0).data
         elif c1 == 'z' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0).data
             
                    
         self.current_feat_stack = dask.array.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
