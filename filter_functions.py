@@ -491,7 +491,7 @@ class image_filter:
             print('prepare first')
         else:
             self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
-            self.feature_stack_time_independent = dask.array.stack(self.calculated_features, axis=3)
+            self.feature_stack_time_independent = dask.array.stack(self.calculated_features_time_independent, axis=3)
             shp = self.feature_stack_time_independent.shape
             self.feature_stack_time_independent = self.feature_stack_time_independent.reshape(shp[0],shp[1],shp[2],1,shp[3])
             # TODO: rechunk?
