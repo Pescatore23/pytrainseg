@@ -7,7 +7,7 @@ to be loaded in Jupyter
 TODO: store git commit sha
 @author: fische_r
 """
-import xarray as xr
+# import xarray as xr
 import os
 from skimage import io, exposure
 import matplotlib.pyplot as plt
@@ -107,16 +107,22 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
     # temporary workaround, make general
     if c1 == 'x' and c2 == 'time':
         feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
+        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time = p2).data
     elif c1 == 'x' and c2 == 'y':
         feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
+        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
     elif c1 == 'x' and c2 == 'z':
         feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
+        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2).data
     elif c1 == 'y' and c2 == 'z':
         feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
+        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
     elif c1 == 'y' and c2 == 'time':
         feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
+        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time = p2).data
     elif c1 == 'z' and c2 == 'time':
         feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
+        feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time = p2).data
     else:
         print('coordinates not found')
     # if lazy:
@@ -128,6 +134,8 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
     # else:
     if type(feat_stack) is not np.ndarray:
             feat_stack = feat_stack.compute()
+            
+    feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
     
     X, y = extract_training_data(truth, feat_stack)
     return X,y
@@ -149,19 +157,22 @@ class train_segmentation:
             
         self.lazy = False #maybe this can be more elegant without flag
             
-    def open_feature_data(self):
-        self.feat_data = xr.open_dataset(self.feature_path)
-        self.feature_names = self.feat_data['feature'].data
+    # def open_feature_data(self):
+    #     self.feat_data = xr.open_dataset(self.feature_path)
+    #     self.feature_names = self.feat_data['feature'].data
     
-    def import_feature_data(self, data):
-        self.feat_data = data
-        self.feature_names = self.feat_data['feature'].data
-        self.lazy = False
+    # def import_feature_data(self, data):
+    #     self.feat_data = data
+    #     self.feature_names = self.feat_data['feature'].data
+    #     self.lazy = False
     
     def import_lazy_feature_data(self, data, rawdata, lazy = True):
         self.raw_data = rawdata
         self.feat_data = data
+        # self.feat_data_tme_idp = data['feature_stack_time_independent']
         self.feature_names = self.feat_data['feature'].data
+        self.feature_names_time_independent = self.feat_data['feature_time_independent'].data
+        self.combined_feature_names = self.feature_names + self.feature_names_time_independent
         self.lazy = lazy
 
     def suggest_training_set(self):
@@ -176,51 +187,51 @@ class train_segmentation:
         
     def load_training_set(self, c1, p1, c2, p2):
         
-        data = self.feat_data['feature_stack']
+        # data = self.feat_data['feature_stack']
         rawdata = self.raw_data['tomo']
         
         
         # this has to be possible in a more elegant way!
         if c1 == 'x':
             stage1 = rawdata.sel(x=p1)
-            stage1feat = data.sel(x=p1)
+            # stage1feat = data.sel(x=p1)
         elif c1 == 'y':
             stage1 = rawdata.sel(y=p1)
-            stage1feat = data.sel(y=p1)
+            # stage1feat = data.sel(y=p1)
         elif c1 == 'z':
             stage1 = rawdata.sel(z=p1)
-            stage1feat = data.sel(z=p1)
+            # stage1feat = data.sel(z=p1)
         elif c1 == 'time':
             print('time cannot be first coordinate')
         
         if not c1=='time':
             if c2 == 'x':
                 im = stage1.sel( x = p2).data #feature = 'original',
-                feat_stack = stage1feat.sel(x = p2).data
+                # feat_stack = stage1feat.sel(x = p2).data
                 imfirst = None
             elif c2 == 'y':
                 im = stage1.sel( y = p2).data
-                feat_stack = stage1feat.sel(y = p2).data
+                # feat_stack = stage1feat.sel(y = p2).data
                 imfirst = None
             elif c2 == 'z':
                 im = stage1.sel( z = p2).data
-                feat_stack = stage1feat.sel(z = p2).data
+                # feat_stack = stage1feat.sel(z = p2).data
                 imfirst = None
             elif c2 == 'time':
                 im = stage1.sel(time = p2).data
-                feat_stack = stage1feat.sel(time = p2).data
+                # feat_stack = stage1feat.sel(time = p2).data
                 imfirst = stage1.sel(time = 0).data
             
-            if self.lazy:
-#                 get the reference images directly as numpy array
-                # im = im.compute()
-                # if imfirst is not None:
-                    # imfirst = imfirst.compute()
-                #already start calculating the feature stack
-                feat_stack.persist()
-                self.current_computed = False
-            else:
-                self.current_computed = True
+#             if self.lazy:
+# #                 get the reference images directly as numpy array
+#                 # im = im.compute()
+#                 # if imfirst is not None:
+#                     # imfirst = imfirst.compute()
+#                 #already start calculating the feature stack
+#                 # feat_stack.persist()
+#                 self.current_computed = False
+#             else:
+#                 self.current_computed = True
                 
             if type(im) is not np.ndarray:
                 im = im.compute()
@@ -250,26 +261,58 @@ class train_segmentation:
             self.current_coordinates = [c1,p1,c2,p2]
             self.current_im = im
             self.current_im8 = im8
-            self.current_feat_stack = feat_stack
+            # self.current_feat_stack = feat_stack
             self.current_first_im = imfirst
             self.current_truth = truth
             self.current_result = resultim
             self.current_truthpath = truthpath
             self.current_slice_name = slice_name
-            #TODO: maybe keep lazy computed feature stacks of older slices somewhere and purge if using up too much RAM
+            # currently not getting the feature data while loading slice, probably good idea
+    
+    
+    def get_slice_feat_stack(self):
         
+        feat_data = self.feat_data
+        [c1,p1,c2,p2] = self.current_coordinates
+        
+        
+        if c1 == 'x' and c2 == 'time':
+            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time = p2).data
+        elif c1 == 'x' and c2 == 'y':
+            feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
+        elif c1 == 'x' and c2 == 'z':
+            feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2).data
+        elif c1 == 'y' and c2 == 'z':
+            feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
+        elif c1 == 'y' and c2 == 'time':
+            feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time = p2).data
+        elif c1 == 'z' and c2 == 'time':
+            feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time = p2).data
+            
+                   
+        self.current_feat_stack = dask.array.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
+    
     def train_slice(self):
         #fetch variables
         im = self.current_im
         truth = self.current_truth
         training_dict = self.training_dict
         slice_name = self.current_slice_name
+        
+        
         feat_stack = self.current_feat_stack
+               
+        
         
         #re-consider these lines
         if self.lazy and not self.current_computed and type(feat_stack) is not np.ndarray:
             print('now actually calculating the features')
-            # self.current_feat_stack.rechunk('auto') #why rechunk 'auto' ?! if anything should be something small fot massive parallel
             feat_stack = feat_stack.compute() 
             self.current_computed = True
         if type(feat_stack) is not np.ndarray:
@@ -322,17 +365,18 @@ class train_segmentation:
         self.clf = clf
         self.training_dict = training_dict
         
-    def train_with_existing_label_set(self):
+    # def train_with_existing_label_set(self):
         #variant to above attempting to avoid redundant calculations, however, there is probably nromally not that much to gain
-        path = self.label_path
-        feat_data = self.feat_data #
-        training_dict = {}
-        labelnames = os.listdir(path)
+        # path = self.label_path
+        # feat_data = self.feat_data #
+        # training_dict = {}
+        # labelnames = os.listdir(path)
         # TODO
     
     def train_parallel(self):
     #come up with a way to train() in parallel
     # maybe with dask.delayed
+    # avoid redundant calculations, however, there is probably nromally not that much to gain
         path = self.label_path
         feat_data = self.feat_data
         training_dict = {}

@@ -36,6 +36,9 @@ import xarray as xr
 # client = Client(cluster)
 # print('Dashboard at '+cluster.dashboard_link)
 
+
+# TODO: all time independent features or "pre-features" should be calculated once and kept in RAM or disk, potential in separate object which is then fetched for training and segmentation
+
 default_feature_dict = {'Gaussian': True, 
                # 'Sobel': True,
                'Hessian': True,
@@ -89,6 +92,8 @@ class image_filter:
         self.Gradient_dict = {}
         self.calculated_features = []
         self.feature_names = []
+        self.calculated_features_time_independent = []
+        self.feature_names_time_independent = []
         self.considered_ranks = ranks
         self.sigma_t = sigma_t
         
@@ -240,10 +245,15 @@ class image_filter:
             self.feature_names.append('diff_to_first_')
             self.calculated_features.append(DL)
             self.feature_names.append('diff_to_last_')
-            self.feature_names.append('first_')
-            self.calculated_features.append(firsts)
-            self.feature_names.append('last_')
-            self.calculated_features.append(lasts)
+            # self.feature_names.append('first_')
+            # self.calculated_features.append(firsts)
+            # self.feature_names.append('last_')
+            # self.calculated_features.append(lasts)
+            
+            self.feature_names_time_independent.append('first_')
+            self.calculated_features_time_independent.append(first)
+            self.feature_names_time_independent.append('last_')
+            self.calculated_features_time_independent.append(last)
         else:
             print('Diff first and last is an unexplainable pain in the ass, solve this at one point')
             
@@ -256,32 +266,39 @@ class image_filter:
         minimum = DA.min(axis=-1)
         # maximum = DA.max(axis=-1)
         
-        means = dask.array.stack([mean]*DA.shape[-1], axis=-1)
+        # means = dask.array.stack([mean]*DA.shape[-1], axis=-1)
         # stds = dask.array.stack([std]*DA.shape[-1], axis=-1)
         # medians = dask.array.stack([median]*DA.shape[-1], axis=-1)
         # skews = dask.array.stack([skew]*DA.shape[-1], axis=-1)
-        mins = dask.array.stack([minimum]*DA.shape[-1], axis=-1)
+        # mins = dask.array.stack([minimum]*DA.shape[-1], axis=-1)
         # maxs = dask.array.stack([maximum]*DA.shape[-1], axis=-1)
         
         diff_min = DA - minimum[...,None]
         # TODO: consider diffs to gaussian filtered mimimum, and diffs of gaussians
         
-        self.calculated_features.append(means)
-        self.feature_names.append('full_temporal_mean_')
-        # self.calculated_features.append(stds)
-        # self.feature_names.append('full_temporal_std_')
-        # self.calculated_features.append(medians)
-        # self.feature_names.append('full_temporal_median_')
-        # self.calculated_features.append(skews)
-        # self.feature_names.append('full_temporal_skews_')
-        self.calculated_features.append(mins)
-        self.feature_names.append('full_temporal_mins_')
+        # self.calculated_features.append(means)
+        # self.feature_names.append('full_temporal_mean_')
+        
+        # # self.calculated_features.append(stds)
+        # # self.feature_names.append('full_temporal_std_')
+        # # self.calculated_features.append(medians)
+        # # self.feature_names.append('full_temporal_median_')
+        # # self.calculated_features.append(skews)
+        # # self.feature_names.append('full_temporal_skews_')
+        # self.calculated_features.append(mins)
+        # self.feature_names.append('full_temporal_min_')
         self.calculated_features.append(diff_min)
         self.feature_names.append('diff_to_min_')
-        # self.calculated_features.append(maxs)
-        # self.feature_names.append('full_temporal_maxs_')
-        # self.calculated_features.append(maxmin)
-        # self.feature_names.append('full_temporal_maxmin_diff_')
+        # # self.calculated_features.append(maxs)
+        # # self.feature_names.append('full_temporal_maxs_')
+        # # self.calculated_features.append(maxmin)
+        # # self.feature_names.append('full_temporal_maxmin_diff_')
+        
+        self.feature_names_time_independent.append('full_temp_mean_')
+        self.calculated_features_time_independent.append(mean)
+        self.feature_names_time_independent.append('full_temp_min_')
+        self.calculated_features_time_independent.append(minimum)
+
             
     def Gradients(self):
         for key in self.Gaussian_4D_dict:
@@ -414,17 +431,29 @@ class image_filter:
 
         # the following looks less elegant, but seems more compatible with dask
         # TODO: check performance
-        loc_x = dask.array.ones(da.shape)*dask.array.arange(da.shape[0])[:,None, None, None]
-        self.calculated_features.append(loc_x)
-        self.feature_names.append('loc_'+'x')
+        # loc_x = dask.array.ones(da.shape)*dask.array.arange(da.shape[0])[:,None, None, None]
+        # self.calculated_features.append(loc_x)
+        # self.feature_names.append('loc_'+'x')
         
-        loc_y = dask.array.ones(da.shape)*dask.array.arange(da.shape[1])[None,:, None, None]
-        self.calculated_features.append(loc_y)
-        self.feature_names.append('loc_'+'y')
+        # loc_y = dask.array.ones(da.shape)*dask.array.arange(da.shape[1])[None,:, None, None]
+        # self.calculated_features.append(loc_y)
+        # self.feature_names.append('loc_'+'y')
         
-        loc_z = dask.array.ones(da.shape)*dask.array.arange(da.shape[2])[None, None,:, None]
-        self.calculated_features.append(loc_z)
-        self.feature_names.append('loc_'+'z')
+        # loc_z = dask.array.ones(da.shape)*dask.array.arange(da.shape[2])[None, None,:, None]
+        # self.calculated_features.append(loc_z)
+        # self.feature_names.append('loc_'+'z')
+        
+        loc_x = dask.array.ones(da[:-1].shape)*dask.array.arange(da.shape[0])[:,None, None]
+        self.feature_names_time_independent.append('loc_'+'x')
+        self.calculated_features_time_independent.append(loc_x)
+        
+        loc_y = dask.array.ones(da[:-1].shape)*dask.array.arange(da.shape[1])[None,:, None]
+        self.feature_names_time_independent.append('loc_'+'y')
+        self.calculated_features_time_independent.append(loc_y)
+        
+        loc_z = dask.array.ones(da[:-1].shape)*dask.array.arange(da.shape[2])[None, None, :]
+        self.feature_names_time_independent.append('loc_'+'z')
+        self.calculated_features_time_independent.append(loc_z)
 
         
     
@@ -462,6 +491,9 @@ class image_filter:
             print('prepare first')
         else:
             self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
+            self.feature_stack_time_independent = dask.array.stack(self.calculated_features, axis=3)
+            shp = self.feature_stack_time_independent.shape
+            self.feature_stack_time_independent = self.feature_stack_time_independent.reshape(shp[0],shp[1],shp[2],1,shp[3])
             # TODO: rechunk?
     
     def compute(self):
@@ -469,29 +501,35 @@ class image_filter:
         self.feature_stack = self.feature_stack.persist() #not sure, but apparently persist should be preferred
         self.computed = True
         
+    def compute_time_independent_features(self):
+        self.feature_stack_time_independent = self.feature_stack_time_independent.persist()
+        
     def make_xarray_nc(self, outpath = None, store=False):
         if outpath is None:
             outpath = self.outpath
         shp = self.feature_stack.shape
-        coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'feature': self.feature_names}
-        if store:
-            if self.computed:
-                if not type(self.feature_stack) is np.ndarray:
-                    self.feature_stack.rechunk(self.outchunks)
+        coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'time_0': [0],
+                  'feature': self.feature_names,
+                  'feature_time_independent': self.feature_names_time_independent}
+        # if store:
+        #     if self.computed:
+        #         if not type(self.feature_stack) is np.ndarray:
+        #             self.feature_stack.rechunk(self.outchunks)
                 
-                #TODO avoid this explcit conversion. however seems necessary ?...
-                # if type(self.feature_stack) is not np.ndarray: 
-                    # self.feature_stack = self.feature_stack.compute()
+        #         #TODO avoid this explcit conversion. however seems necessary ?...
+        #         # if type(self.feature_stack) is not np.ndarray: 
+        #             # self.feature_stack = self.feature_stack.compute()
                     
-                self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
-                         coords = coords
-                         )
-                self.result.to_netcdf(outpath)
-            else:
-                print('maybe you have to compute the stack first ... ?!')
+        #         self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
+        #                  coords = coords
+        #                  )
+        #         self.result.to_netcdf(outpath)
+        #     else:
+        #         print('maybe you have to compute the stack first ... ?!')
                       
-        else:
-            self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
+        # else:
+        self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack),
+                                  'feature_stack_time_independent': (['x','y','z','time_0', 'feature_time_independent'], self.feature_stack_time_independent)},
                                      coords = coords
                                                  )     
             

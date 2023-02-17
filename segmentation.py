@@ -7,6 +7,7 @@ import xarray as xr
 import pickle
 import os
 import numpy as np
+import dask
 
 
 class segmentation:
@@ -39,23 +40,31 @@ class segmentation:
     def import_lazy_feature_data(self, data):
         self.feat_data = data
         self.feature_names = self.feat_data['feature'].data
+        self.feature_names_t_idp = self.feat_data['feature_time_independent'].data
+        self.combined_names = self.feature_names + self.feature_names_t_idp
         self.lazy = True
-    
-    def classify_all(self):
-#         TODO: streamline classifier and feature calculation. maybe integrate both within dask
-#               especially if original and segmented dataset don't fit in RAM
+        
+    def full_5D_feature_stack(self):
         feat_stack = self.feat_data['feature_stack']
-        num_feat = feat_stack.shape[-1]
-        clf = self.clf
-        if not self.lazy:
-            print('classifying ...')
-            # result = clf.predict(feat_stack.reshape(-1,num_feat))
-            result = clf.predict(feat_stack.data.reshape(-1,num_feat))
-        else:
-            print('calculate feature stack and then classify. might take a while ... ')
-            result = clf.predict(feat_stack.data.reshape(-1,num_feat))
-        result = result.reshape(feat_stack[...,0].shape).astype(np.uint8)
-        self.segmented_data = result
+        feat_stack_t_idp = self.feat_data['feature_stack_time_independent']
+        feat_stack =  dask.array.concatenate([feat_stack, feat_stack_t_idp], axis=4)
+        self.feat_stack = feat_stack
+    
+#     def classify_all(self):
+# #         TODO: streamline classifier and feature calculation. maybe integrate both within dask
+# #               especially if original and segmented dataset don't fit in RAM
+#         feat_stack = self.feat_data['feature_stack']
+#         num_feat = feat_stack.shape[-1]
+#         clf = self.clf
+#         if not self.lazy:
+#             print('classifying ...')
+#             # result = clf.predict(feat_stack.reshape(-1,num_feat))
+#             result = clf.predict(feat_stack.data.reshape(-1,num_feat))
+#         else:
+#             print('calculate feature stack and then classify. might take a while ... ')
+#             result = clf.predict(feat_stack.data.reshape(-1,num_feat))
+#         result = result.reshape(feat_stack[...,0].shape).astype(np.uint8)
+#         self.segmented_data = result
     
     def store_segmented_data(self):
         path = os.path.join(self.training_path, 'segmented.nc')
