@@ -27,6 +27,8 @@ default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, rando
 
 def extract_training_data(truth, feat_stack):
     #pixelwise training data
+    print(truth.shape)
+    print(feat_stack.shape)
     phase1 = truth==1
     phase2 = truth==2
     phase3 = truth==4   
@@ -135,6 +137,9 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
         # else:
         if type(feat_stack) is not np.ndarray:
                 feat_stack = feat_stack.compute()
+        if type(feat_stack_t_idp) is not np.ndarray:
+                feat_stack_t_idp = feat_stack_t_idp.compute()
+                        
                 
         feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
         
@@ -178,7 +183,7 @@ class train_segmentation:
         self.feature_names = self.feat_data['feature'].data
         self.feature_names_time_independent = self.feat_data['feature_time_independent'].data
         
-        self.combined_feature_names = list(self.feature_names) + list(self.feature_names_time_independent)
+        # self.combined_feature_names = list(self.feature_names) + list(self.feature_names_time_independent) #no idea why this is not working
         self.lazy = lazy
 
     def suggest_training_set(self):

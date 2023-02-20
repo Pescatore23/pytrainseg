@@ -44,11 +44,13 @@ class segmentation:
         self.combined_names = self.feature_names + self.feature_names_t_idp
         self.lazy = True
         
-    def full_5D_feature_stack(self):
-        feat_stack = self.feat_data['feature_stack']
-        feat_stack_t_idp = self.feat_data['feature_stack_time_independent']
-        feat_stack =  dask.array.concatenate([feat_stack, feat_stack_t_idp], axis=4)
-        self.feat_stack = feat_stack
+    # def full_5D_feature_stack(self):
+    #     feat_stack = self.feat_data['feature_stack']
+    #     feat_stack_t_idp = self.feat_data['feature_stack_time_independent']
+    #    
+    # TODO: this cannot work ?! first t_idp needs to be expanded in time
+    #     feat_stack =  dask.array.concatenate([feat_stack, feat_stack_t_idp], axis=4)
+    #     self.feat_stack = feat_stack
     
 #     def classify_all(self):
 # #         TODO: streamline classifier and feature calculation. maybe integrate both within dask
