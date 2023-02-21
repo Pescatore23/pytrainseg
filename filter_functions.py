@@ -61,6 +61,7 @@ class image_filter:
                  data_path = None,
                  outpath = None,
                  sigmas = [0,2, 4],
+                 sigma_for_ref = 2,
                  feature_dict = default_feature_dict,
                  mod_feat_dict = None,
                  chunksize = (64,64,64,1), #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
@@ -73,6 +74,11 @@ class image_filter:
             for key in mod_feat_dict:
                 feature_dict[key] = mod_feat_dict[key]
         
+        # this sigma is used for the diff of Gaussian time_stats
+        if sigma_for_ref not in sigmas:
+            sigmas.append(sigma_for_ref)
+        
+        self.sigma_for_ref = sigma_for_ref
         self.data_path = data_path
         self.outpath = outpath
         self.sigmas = sigmas        
@@ -222,7 +228,7 @@ class image_filter:
             self.feature_names.append(name)
 
     def diff_to_first_and_last(self, take_mean, means):
-#         TODO: take temporal mean/median for first and last
+
         DA = self.data
         if take_mean:
             first = DA[...,:means].mean(axis=-1)
@@ -233,7 +239,7 @@ class image_filter:
         if type(first) is not np.ndarray:
             first = first.compute()
             last = last.compute()
-        # ones = dask.array.ones(DA.shape, chunks=self.chunks)
+
         if type(first) is np.ndarray:
             firsts = dask.array.stack([first]*DA.shape[-1], axis=-1)
             lasts = dask.array.stack([last]*DA.shape[-1], axis=-1)
@@ -245,10 +251,6 @@ class image_filter:
             self.feature_names.append('diff_to_first_')
             self.calculated_features.append(DL)
             self.feature_names.append('diff_to_last_')
-            # self.feature_names.append('first_')
-            # self.calculated_features.append(firsts)
-            # self.feature_names.append('last_')
-            # self.calculated_features.append(lasts)
             
             self.feature_names_time_independent.append('first_')
             self.calculated_features_time_independent.append(first)
@@ -260,44 +262,28 @@ class image_filter:
     def time_stats(self):
         DA = self.data
         mean = DA.mean(axis=-1)
-        # median = dask.array.median(DA, axis = -1)
-        # std = DA.std(axis=-1)
-        # skew = (mean - median)/std
         minimum = DA.min(axis=-1)
-        # maximum = DA.max(axis=-1)
-        
-        # means = dask.array.stack([mean]*DA.shape[-1], axis=-1)
-        # stds = dask.array.stack([std]*DA.shape[-1], axis=-1)
-        # medians = dask.array.stack([median]*DA.shape[-1], axis=-1)
-        # skews = dask.array.stack([skew]*DA.shape[-1], axis=-1)
-        # mins = dask.array.stack([minimum]*DA.shape[-1], axis=-1)
-        # maxs = dask.array.stack([maximum]*DA.shape[-1], axis=-1)
-        
+
         diff_min = DA - minimum[...,None]
         # TODO: consider diffs to gaussian filtered mimimum, and diffs of gaussians
         
-        # self.calculated_features.append(means)
-        # self.feature_names.append('full_temporal_mean_')
+        G = self.Gaussian_4D_dict[f'{self.sigma_for_ref:.1f}']
+        Gmin = G.min(axis=-1)
+        Gmindiff = G - Gmin[...,None]
         
-        # # self.calculated_features.append(stds)
-        # # self.feature_names.append('full_temporal_std_')
-        # # self.calculated_features.append(medians)
-        # # self.feature_names.append('full_temporal_median_')
-        # # self.calculated_features.append(skews)
-        # # self.feature_names.append('full_temporal_skews_')
-        # self.calculated_features.append(mins)
-        # self.feature_names.append('full_temporal_min_')
         self.calculated_features.append(diff_min)
         self.feature_names.append('diff_to_min_')
-        # # self.calculated_features.append(maxs)
-        # # self.feature_names.append('full_temporal_maxs_')
-        # # self.calculated_features.append(maxmin)
-        # # self.feature_names.append('full_temporal_maxmin_diff_')
         
         self.feature_names_time_independent.append('full_temp_mean_')
         self.calculated_features_time_independent.append(mean)
         self.feature_names_time_independent.append('full_temp_min_')
         self.calculated_features_time_independent.append(minimum)
+        
+        self.feature_names_time_independent.append(''.join(['full_temp_min_Gauss_',f'{self.sigma_for_ref:.1f}']))
+        self.calculated_features_time_independent.append(Gmin)
+        
+        self.feature_names_time.append(''.join(['diff_temp_min_Gauss_',f'{self.sigma_for_ref:.1f}']))
+        self.calculated_features.append(Gmindiff)
 
             
     def Gradients(self):
@@ -422,26 +408,6 @@ class image_filter:
     def pixel_coordinates(self):
         #create 3 arrays with the pixel coordinates
         da = self.data
-#         coords = dask.array.where(da)
-       
-#         for i in range(3):
-#             loc = coords[i].compute().reshape(da.shape) #compute() to know shape of coords, maybe find another way
-#             self.calculated_features.append(loc)
-#             self.feature_names.append('loc_'+'xyz'[i])
-
-        # the following looks less elegant, but seems more compatible with dask
-        # TODO: check performance
-        # loc_x = dask.array.ones(da.shape)*dask.array.arange(da.shape[0])[:,None, None, None]
-        # self.calculated_features.append(loc_x)
-        # self.feature_names.append('loc_'+'x')
-        
-        # loc_y = dask.array.ones(da.shape)*dask.array.arange(da.shape[1])[None,:, None, None]
-        # self.calculated_features.append(loc_y)
-        # self.feature_names.append('loc_'+'y')
-        
-        # loc_z = dask.array.ones(da.shape)*dask.array.arange(da.shape[2])[None, None,:, None]
-        # self.calculated_features.append(loc_z)
-        # self.feature_names.append('loc_'+'z')
         
         loc_x = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[0])[:,None, None]
         self.feature_names_time_independent.append('loc_'+'x')

@@ -27,8 +27,6 @@ default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, rando
 
 def extract_training_data(truth, feat_stack):
     #pixelwise training data
-    print(truth.shape)
-    print(feat_stack.shape)
     phase1 = truth==1
     phase2 = truth==2
     phase3 = truth==4   
@@ -308,6 +306,9 @@ class train_segmentation:
             
                    
         self.current_feat_stack = dask.array.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
+        
+        if type(self.current_feat_stack) is not np.narray:
+            self.current_computed = False
     
     def train_slice(self):
         #fetch variables
@@ -376,10 +377,11 @@ class train_segmentation:
             if flag:
                 print('no label image actually contained labels')
             else:
+                self.training_dict = training_dict
                 clf =  self.clf_method
                 clf.fit(Xall, yall)
                 self.clf = clf
-                self.training_dict = training_dict
+                
         else:
             print('no label images found, start creating some')
         
