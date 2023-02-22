@@ -5,6 +5,7 @@ Created on Wed Aug 17 16:04:34 2022
 to be loaded in Jupyter
 
 TODO: store git commit sha
+TODO: allow saving feature stacks for re-training in self.train()
 @author: fische_r
 """
 # import xarray as xr
@@ -18,10 +19,6 @@ import pickle
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
 
-#stuff for painting on the image
-# from ipywidgets import Image
-# from ipywidgets import ColorPicker, IntSlider, link, AppLayout, HBox
-# from ipycanvas import  hold_canvas,  MultiCanvas #RoughCanvas,Canvas,
 
 default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, random_state = 42, max_features=None) 
 

@@ -282,7 +282,7 @@ class image_filter:
         self.feature_names_time_independent.append(''.join(['full_temp_min_Gauss_',f'{self.sigma_for_ref:.1f}']))
         self.calculated_features_time_independent.append(Gmin)
         
-        self.feature_names_time.append(''.join(['diff_temp_min_Gauss_',f'{self.sigma_for_ref:.1f}']))
+        self.feature_names.append(''.join(['diff_temp_min_Gauss_',f'{self.sigma_for_ref:.1f}']))
         self.calculated_features.append(Gmindiff)
 
             
