@@ -6,6 +6,7 @@ to be loaded in Jupyter
 
 TODO: store git commit sha
 TODO: allow saving feature stacks for re-training in self.train()
+TODO: properly include feature de-selection
 @author: fische_r
 """
 # import xarray as xr
@@ -22,7 +23,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, random_state = 42, max_features=None) 
 
-def extract_training_data(truth, feat_stack):
+def extract_training_data(truth, feat_stack, ids = None):
     #pixelwise training data
     phase1 = truth==1
     phase2 = truth==2
@@ -37,6 +38,8 @@ def extract_training_data(truth, feat_stack):
     y = np.concatenate([y1,y2,y3])
     X = np.concatenate([X1,X2,X3])
     
+    if ids is not None:
+        X = X[:,ids]
     return X,y
 
 def classify(X,y,im, feat_stack, clf):
@@ -304,7 +307,7 @@ class train_segmentation:
                    
         self.current_feat_stack = dask.array.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
         
-        if type(self.current_feat_stack) is not np.narray:
+        if type(self.current_feat_stack) is not np.ndarray:
             self.current_computed = False
     
     def train_slice(self):
@@ -322,15 +325,16 @@ class train_segmentation:
         #re-consider these lines
         if self.lazy and not self.current_computed and type(feat_stack) is not np.ndarray:
             print('now actually calculating the features')
-            feat_stack = feat_stack.compute() 
+            feat_stack = feat_stack.persist() #compute() persist may prevent an memory blow up https://stackoverflow.com/questions/73770527/dask-compute-uses-twice-the-expected-memory
             self.current_computed = True
         if type(feat_stack) is not np.ndarray:
-            print('feat_stack is not a numpy array!')
-            feat_stack = feat_stack.compute()      
+            print('feat_stack is not a numpy array! check why')
+            feat_stack = feat_stack.persist() # compute()      
         
         self.current_feat_stack = feat_stack
         #train
         # print('training ...')
+        # TODO: do I have to wait for the persist() to finish or does this work automatically ??
         resultim, clf, training_dict = training_function(im, truth, feat_stack, training_dict, slice_name, self.clf_method)
 
         # update variables

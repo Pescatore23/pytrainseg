@@ -444,7 +444,7 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
-        self.pixel_coordinates()
+        # self.pixel_coordinates() #this feature is a double-edged sword, use with care!!
         # self.rank_filter_stack() #you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
         self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
         
