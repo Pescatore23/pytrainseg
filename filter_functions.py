@@ -91,6 +91,9 @@ class image_filter:
         self.take_means = True
         self.num_means = 7
         
+        #wether to use the pixel coordinates as feature
+        self.loc_features = False
+        
         # not sure if this is clever, does dask understand that this data is reused?
         self.Gaussian_4D_dict = {}
         self.Gaussian_space_dict = {}
@@ -444,9 +447,11 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
-        # self.pixel_coordinates() #this feature is a double-edged sword, use with care!!
+        #  #this feature is a double-edged sword, use with care!!
         # self.rank_filter_stack() #you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
         self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
+        if self.loc_features:
+            self.pixel_coordinates()
         
         
         self.prepared = True
