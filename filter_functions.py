@@ -39,15 +39,15 @@ import xarray as xr
 
 # TODO: all time independent features or "pre-features" should be calculated once and kept in RAM or disk, potential in separate object which is then fetched for training and segmentation
 
-default_feature_dict = {'Gaussian': True, 
-               # 'Sobel': True,
-               'Hessian': True,
-               'Diff of Gaussians': True,
-               'maximum': True,
-               'minimum': True,
-               'median': True,
-               'extra_time_ranks': True,
-              }
+# default_feature_dict = {'Gaussian': True, 
+#                # 'Sobel': True,
+#                'Hessian': True,
+#                'Diff of Gaussians': True,
+#                'maximum': True,
+#                'minimum': True,
+#                'median': True,
+#                'extra_time_ranks': True,
+#               }
 
 def ball_4d(sig):
     bnd = np.zeros((sig*2+1,sig*2+1,sig*2+1,sig*2+1), dtype = bool)
@@ -60,19 +60,20 @@ class image_filter:
     def __init__(self,
                  data_path = None,
                  outpath = None,
-                 sigmas = [0,2, 4],
+                 sigmas = [0, 1, 3, 6],
                  sigma_for_ref = 2,
-                 feature_dict = default_feature_dict,
+                 # feature_dict = default_feature_dict,
                  mod_feat_dict = None,
-                 chunksize = (64,64,64,1), #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
+                 # chunksize = (64,64,64,1), #try to align chunks to extend far in time --> should be useful for most filters, esp. the dynamic rank filters
                 # auto chunking of the feature stack appears to be more useful , --> potentially remove the rechunking
-                 outchunks = '300 MiB',
+                 # outchunks = '300 MiB',
                  ranks = ['maximum', 'minimum', 'median'], #, 'mean'
-                 sigma_t = 40
+                 sigma_t = 40,
+                 sigma_0_derivatives = False
                  ):
-        if mod_feat_dict is not None:
-            for key in mod_feat_dict:
-                feature_dict[key] = mod_feat_dict[key]
+        # if mod_feat_dict is not None:
+        #     for key in mod_feat_dict:
+        #         feature_dict[key] = mod_feat_dict[key]
         
         # this sigma is used for the diff of Gaussian time_stats
         if sigma_for_ref not in sigmas:
@@ -82,10 +83,10 @@ class image_filter:
         self.data_path = data_path
         self.outpath = outpath
         self.sigmas = sigmas        
-        self.feature_dict = feature_dict
+        # self.feature_dict = feature_dict
         # TODO: allow option of custom shaped chunks
-        self.chunks = chunksize
-        self.outchunks = outchunks
+        # self.chunks = chunksize
+        # self.outchunks = outchunks
         
         #wheter considering means for first and last time step
         self.take_means = True
@@ -93,6 +94,9 @@ class image_filter:
         
         #wether to use the pixel coordinates as feature
         self.loc_features = False
+        
+        # wether to calculate image derivates for raw image (rather useless)
+        self.sigma_0_derivatives = False
         
         # not sure if this is clever, does dask understand that this data is reused?
         self.Gaussian_4D_dict = {}
@@ -114,32 +118,32 @@ class image_filter:
     # .rechunk() causes problems downstream: "Assertion error" , WTF?!
     # if original data soe not fit in RAM, rechunk, store to disk and load again?
     # rechunk apparently sometimes only adds an addtional graph layer linking initial chunks
-    def open_raw_data(self):
-        data = xr.open_dataset(self.data_path)
-        da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
+    # def open_raw_data(self):
+    #     data = xr.open_dataset(self.data_path)
+    #     da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
         
-        self.original_dataset = data
-        self.data = da
+    #     self.original_dataset = data
+    #     self.data = da
     
-    def open_lazy_data(self, chunks=None):
-        if chunks is None: 
-            chunks = self.chunks
-        data = xr.open_dataset(self.data_path, chunks = chunks)
-        da = dask.array.from_array(data.tomo)
-        # print('maybe re-introducing rechunking, but for large datasets auto might be ok')
-        # print('smaller chunks might be better for slicewise training')
-        # print('currently provided chunks are ignored')
-        self.original_dataset = data#.rechunk(self.chunks)
-        self.data = da
+    # def open_lazy_data(self, chunks=None):
+    #     if chunks is None: 
+    #         chunks = self.chunks
+    #     data = xr.open_dataset(self.data_path, chunks = chunks)
+    #     da = dask.array.from_array(data.tomo)
+    #     # print('maybe re-introducing rechunking, but for large datasets auto might be ok')
+    #     # print('smaller chunks might be better for slicewise training')
+    #     # print('currently provided chunks are ignored')
+    #     self.original_dataset = data#.rechunk(self.chunks)
+    #     self.data = da
     
-    def load_raw_data(self):
-        data = xr.load_dataset(self.data_path)
-        # da = dask.array.from_array(data.tomo).rechunk(chunks = self.chunks)
+    # def load_raw_data(self):
+    #     data = xr.load_dataset(self.data_path)
+    #     # da = dask.array.from_array(data.tomo).rechunk(chunks = self.chunks)
         
-        da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
+    #     da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
 
-        self.original_dataset = data
-        self.data = da 
+    #     self.original_dataset = data
+    #     self.data = da 
         
     def Gaussian_Blur_4D(self, sigma):
         # TODO: check on boundary mode
@@ -291,6 +295,7 @@ class image_filter:
             
     def Gradients(self):
         for key in self.Gaussian_4D_dict:
+            if key == '0.0' and not self.sigma_0_derivatives: continue
             G = self.Gaussian_4D_dict[key]
             gradients = dask.array.gradient(G)
             self.Gradient_dict[key] = gradients
@@ -298,6 +303,7 @@ class image_filter:
     def Hessian(self):
         # TODO: add max of all dimensions
         for key in self.Gradient_dict.keys():
+            if key == '0.0' and not self.sigma_0_derivatives: continue
             axes = range(self.data.ndim)
             gradients = self.Gradient_dict[key]
             H_elems = [dask.array.gradient(gradients[ax0], axis=ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
