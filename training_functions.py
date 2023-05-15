@@ -357,19 +357,23 @@ class train_segmentation:
     def pickle_classifier(self):
         pickle.dump(self.clf, open(os.path.join(self.training_path, 'classifier.p'),'wb'))
     
-    def train(self):
+    def train(self, clear_dict= False, redo=False):
         path = self.label_path
         feat_data = self.feat_data #probably requires computed feature data, added the flag below
-        training_dict = {}
+        if clear_dict:
+            self.training_dict = {}
         labelnames = os.listdir(path)
         if len(labelnames)>0:
             print('training with existing label images')
             flag = True
             for label_name in labelnames:
+                if label_name in self.training_dict.keys() and not redo: 
+                    print(label_name+' already done')
+                    continue
                 print(label_name)
                 X, y = training_set_per_image(label_name, path, feat_data, self.lazy)
                 if not X == 'no labels':
-                    training_dict[label_name] = X,y
+                    self.training_dict[label_name] = X,y
                     if flag:
                         Xall = X
                         yall = y
@@ -380,7 +384,6 @@ class train_segmentation:
             if flag:
                 print('no label image actually contained labels')
             else:
-                self.training_dict = training_dict
                 clf =  self.clf_method
                 clf.fit(Xall, yall)
                 self.clf = clf
