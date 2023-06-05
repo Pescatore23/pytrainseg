@@ -29,16 +29,6 @@ import xarray as xr
 
 # functions take chunked dask-array as input
 
-# start-up cluster, TODO: option to connect to exisitng cluster
-# TODO: class/function to boot up cluster with custom options, e.g. workers/threads
-# esp. use SSD for memory spilling
-# cluster = LocalCluster() 
-# client = Client(cluster)
-# print('Dashboard at '+cluster.dashboard_link)
-
-
-# TODO: all time independent features or "pre-features" should be calculated once and kept in RAM or disk, potential in separate object which is then fetched for training and segmentation
-
 # default_feature_dict = {'Gaussian': True, 
 #                # 'Sobel': True,
 #                'Hessian': True,
@@ -453,12 +443,12 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
-        #  #this feature is a double-edged sword, use with care!!
         # self.rank_filter_stack() #you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
         self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
+        
         if self.loc_features:
             self.pixel_coordinates()
-        
+        #  #this feature is a double-edged sword, use with care!!
         
         self.prepared = True
 
@@ -488,23 +478,7 @@ class image_filter:
         coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'time_0': [0],
                   'feature': self.feature_names,
                   'feature_time_independent': self.feature_names_time_independent}
-        # if store:
-        #     if self.computed:
-        #         if not type(self.feature_stack) is np.ndarray:
-        #             self.feature_stack.rechunk(self.outchunks)
-                
-        #         #TODO avoid this explcit conversion. however seems necessary ?...
-        #         # if type(self.feature_stack) is not np.ndarray: 
-        #             # self.feature_stack = self.feature_stack.compute()
-                    
-        #         self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack)},
-        #                  coords = coords
-        #                  )
-        #         self.result.to_netcdf(outpath)
-        #     else:
-        #         print('maybe you have to compute the stack first ... ?!')
-                      
-        # else:
+
         self.result = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], self.feature_stack),
                                   'feature_stack_time_independent': (['x','y','z','time_0', 'feature_time_independent'], self.feature_stack_time_independent)},
                                      coords = coords

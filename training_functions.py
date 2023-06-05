@@ -4,9 +4,7 @@ Created on Wed Aug 17 16:04:34 2022
 
 to be loaded in Jupyter
 
-TODO: store git commit sha
-TODO: allow saving feature stacks for re-training in self.train()
-TODO: properly include feature de-selection
+TODO: properly include feature de-selection by reforming feature dict into xarray dataset
 @author: fische_r
 """
 # import xarray as xr
@@ -20,7 +18,6 @@ from dask.distributed import wait
 
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
-
 
 default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, random_state = 42, max_features=None) 
 
