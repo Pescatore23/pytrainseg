@@ -7,7 +7,8 @@ This collection of codes extends the idea of trainable Weka segmentation (TWS, h
 
 ## Usage
 This is a project in development. There are three python classes for image feature creation, training and segmentation called from a main jupyter notebook. 
-It might work if you execute the example notebook from top to bottom. Depending on your hardware, this might not work at all or crash eventually. 
+It might work if you execute the example notebook from top to bottom. Depending on your hardware and python environment, this might not work at all or crash eventually. 
+I am working on a 64 cores 1 TB RAM 3TB SSD work station for my 4D-CT data (roughly 1700x150x800x70 voxel). I would start testing with a much smaller ROI.
 Currently, the classes are not used as they have been layed out and some functionalities are not compatible, for example the planned usage of lazy loading is not working.
 
 ## Main concepts
