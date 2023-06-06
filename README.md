@@ -6,8 +6,8 @@ This collection of codes extends the idea of trainable Weka segmentation (TWS, h
 
 
 ## Usage
-This is a project in development. There are three python classes for image feauture creation, training and segmentation called from a main jupyter notebook. 
-It might work, if you execute the example notebook from top to bottom. Depending on your hardware, this might not work at all or crash eventually. 
+This is a project in development. There are three python classes for image feature creation, training and segmentation called from a main jupyter notebook. 
+It might work if you execute the example notebook from top to bottom. Depending on your hardware, this might not work at all or crash eventually. 
 Currently, the classes are not used as they have been layed out and some functionalities are not compatible, for example the planned usage of lazy loading is not working.
 
 ## Main concepts
@@ -18,8 +18,9 @@ assign every pixel to the label classes based on its feature set.
 
 ## Contact
 
-The state of the project is basically a breadboard with wires sticking out and external devices patched with duct tape. The are too many limitations and bugs to list here at the moment. However, it works :). Feel free to use it, but I would really appreciate to learn of modifications you make since they might be helpful for me, too.
-If you want to dig into it, maybe you want to talk to me first for demonstration ;)
+The state of the project is basically a breadboard with wires sticking out and external devices patched with duct tape. The are too many limitations and bugs to list here at the moment. However, it works good enough for my inteded usage :). Feel free to use it, but I would really appreciate to learn of modifications you make since they might be helpful for me, too.
+I see potential in a better technical implementation, as well as in the selection and employment of clever alternative image filters, esp. in the time domain.
+If you want to dig into it, maybe you want to talk to me first for demonstration.
 
 
 Cheers,
