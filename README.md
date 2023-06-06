@@ -19,7 +19,7 @@ assign every pixel to the label classes based on its feature set.
 ## Contact
 
 The state of the project is basically a breadboard with wires sticking out and external devices patched with duct tape. The are too many limitations and bugs to list here at the moment. However, it works :). Feel free to use it, but I would really appreciate to learn of modifications you make since they might be helpful for me, too.
-If you want to dig into it, maybe you want to talk to me first ;)
+If you want to dig into it, maybe you want to talk to me first for demonstration ;)
 
 
 Cheers,
