@@ -21,6 +21,6 @@ The state of the project is basically a breadboard with wires sticking out and e
 If you want to dig into it, maybe you want to talk to me.
 
 
-Cheers, <\br>
-Robert Fischer<\br>
+Cheers, </br>
+Robert Fischer</br>
 robert.fischer@psi.ch
