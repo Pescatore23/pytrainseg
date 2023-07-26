@@ -17,7 +17,8 @@ TODO: store git commit sha
 # necessary packages for feature stack
 import numpy as np
 from scipy import ndimage
-from skimage import filters
+# from skimage import filters
+import dask_image.ndfilters
 from skimage.morphology import ball
 
 import dask
@@ -104,65 +105,43 @@ class image_filter:
         self.computed = False
         
     
-    # TODO: currently loads full dataset into memory, consider aligning desired chunk already for original dataset to avoid rechunking
-    # .rechunk() causes problems downstream: "Assertion error" , WTF?!
-    # if original data soe not fit in RAM, rechunk, store to disk and load again?
-    # rechunk apparently sometimes only adds an addtional graph layer linking initial chunks
-    # def open_raw_data(self):
-    #     data = xr.open_dataset(self.data_path)
-    #     da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
-        
-    #     self.original_dataset = data
-    #     self.data = da
-    
-    # def open_lazy_data(self, chunks=None):
-    #     if chunks is None: 
-    #         chunks = self.chunks
-    #     data = xr.open_dataset(self.data_path, chunks = chunks)
-    #     da = dask.array.from_array(data.tomo)
-    #     # print('maybe re-introducing rechunking, but for large datasets auto might be ok')
-    #     # print('smaller chunks might be better for slicewise training')
-    #     # print('currently provided chunks are ignored')
-    #     self.original_dataset = data#.rechunk(self.chunks)
-    #     self.data = da
-    
-    # def load_raw_data(self):
-    #     data = xr.load_dataset(self.data_path)
-    #     # da = dask.array.from_array(data.tomo).rechunk(chunks = self.chunks)
-        
-    #     da = dask.array.from_array(data.tomo.data, chunks = self.chunks)
-
-    #     self.original_dataset = data
-    #     self.data = da 
         
     def Gaussian_Blur_4D(self, sigma):
         # TODO: check on boundary mode
-        deptharray = np.ones(self.data.ndim)+4*sigma
-        deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
-        G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigma)
+        # TODO: test dask-image Gaussian filter and use if it works
+        # deptharray = np.ones(self.data.ndim)+4*sigma
+        # deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
+        # G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigma)
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode='nearest', sigma = sigma)
+                
         self.feature_names.append('Gaussian_4D_Blur_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
         self.Gaussian_4D_dict[f'{sigma:.1f}'] = G
         
     def Gaussian_Blur_space(self, sigma):      
-        deptharray = np.ones(self.data.ndim)+4*sigma
-        deptharray[-1] = 0
-        sigmas = np.ones(deptharray.shape)*sigma
-        deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
-        
+        # deptharray = np.ones(self.data.ndim)+4*sigma
+        # deptharray[-1] = 0
+        # deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
+        sigmas = np.ones(self.data.ndim)*sigma
         sigmas[-1] = 0
-        G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigmas)
+        
+        # G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigmas)
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode='nearest', sigma = sigmas)
+        
         self.feature_names.append('Gaussian_space_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
         self.Gaussian_space_dict[f'{sigma:.1f}'] = G
 
     def Gaussian_Blur_time(self, sigma):      
-        deptharray = np.ones(self.data.ndim)+4*sigma
-        deptharray[:-1] = 0
-        sigmas = np.ones(deptharray.shape)*sigma
-        deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
+        # deptharray = np.ones(self.data.ndim)+4*sigma
+        # deptharray[:-1] = 0
+        # deptharray = tuple(np.min([deptharray, self.data.shape], axis=0))
+        
+        sigmas = np.ones(self.data.ndim)*sigma
         sigmas[:-1] = 0
-        G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigmas)
+        # G = self.data.map_overlap(filters.gaussian, depth=deptharray, boundary='nearest', sigma = sigmas)
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode='nearest', sigma = sigmas)
+        
         self.feature_names.append('Gaussian_time_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
         self.Gaussian_time_dict[f'{sigma:.1f}'] = G
@@ -443,7 +422,7 @@ class image_filter:
         self.diff_Gaussian('time')
         self.Gaussian_space_stack()
         self.diff_Gaussian('space')
-        # self.rank_filter_stack() #you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
+        # self.rank_filter_stack() #dask_image might provide rank-like filters soon you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
         self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
         
         if self.loc_features:
