@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import dask 
 import pickle
-from dask.distributed import wait
+# from dask.distributed import wait
 
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
@@ -96,7 +96,7 @@ def extract_coords(labelname):
     p2 = int(parts[5])
     return c1, p1, c2, p2
 
-def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
+def training_set_per_image(label_name, trainingpath, feat_data, client, lazy = False):
     c1, p1, c2, p2 = extract_coords(label_name)
     # print(label_name)
     # print(c1, p1, c2, p2)
@@ -243,10 +243,10 @@ class train_segmentation:
 #                 self.current_computed = True
                 
             if type(im) is not np.ndarray:
-                fut = client.scatter(im)
+                fut = self.client.scatter(im)
                 im = fut.result()
             if imfirst is not None and type(imfirst) is not np.ndarray:
-                fut = client.scatter(imfirst)
+                fut = self.client.scatter(imfirst)
                 imfirst = fut.result()
                 
             im8 = im-im.min()
@@ -329,7 +329,7 @@ class train_segmentation:
             print('now actually calculating the features')
             # feat_stack = feat_stack.persist() #compute() persist may prevent an memory blow up https://stackoverflow.com/questions/73770527/dask-compute-uses-twice-the-expected-memory
             # wait(feat_stack) #if you use persist(), you have to wait for the calculation to finish before passing the feat stack to sklearn
-            fut = client.scatter(feat_stack)
+            fut = self.client.scatter(feat_stack)
             feat_stack = fut.result()
             
             
@@ -376,7 +376,7 @@ class train_segmentation:
                     print(label_name+' already done')
                     continue
                 print(label_name)
-                X, y = training_set_per_image(label_name, path, feat_data, self.lazy)
+                X, y = training_set_per_image(label_name, path, feat_data, self.client, self.lazy)
                 if not X == 'no labels':
                     self.training_dict[label_name] = X,y
                     if flag:
