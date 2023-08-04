@@ -404,24 +404,24 @@ class train_segmentation:
         # labelnames = os.listdir(path)
         # TODO
     
-    def train_parallel(self):
-    #come up with a way to train() in parallel
-    # maybe with dask.delayed
-    # avoid redundant calculations, however, there is probably nromally not that much to gain
-        path = self.label_path
-        feat_data = self.feat_data
-        training_dict = {}
-        labelnames = os.listdir(path)
-        XX = []
-        yy = []
-        for label_name in labelnames:
-            X, y = dask.delayed(training_set_per_image)(label_name, path, feat_data.persist(), self.lazy)
-            training_dict[label_name] = X,y
-            XX.append(X)
-            yy.append(y)
-        Xall = np.concatenate(XX)
-        yall = np.concatenate(yy)
-        clf =  self.clf_method
-        clf.fit(Xall, yall)
-        self.clf = clf
-        self.training_dict = training_dict
+    # def train_parallel(self):
+    # #come up with a way to train() in parallel
+    # # maybe with dask.delayed
+    # # avoid redundant calculations, however, there is probably nromally not that much to gain
+    #     path = self.label_path
+    #     feat_data = self.feat_data
+    #     training_dict = {}
+    #     labelnames = os.listdir(path)
+    #     XX = []
+    #     yy = []
+    #     for label_name in labelnames:
+    #         X, y = dask.delayed(training_set_per_image)(label_name, path, feat_data.persist(), self.lazy)
+    #         training_dict[label_name] = X,y
+    #         XX.append(X)
+    #         yy.append(y)
+    #     Xall = np.concatenate(XX)
+    #     yall = np.concatenate(yy)
+    #     clf =  self.clf_method
+    #     clf.fit(Xall, yall)
+    #     self.clf = clf
+    #     self.training_dict = training_dict

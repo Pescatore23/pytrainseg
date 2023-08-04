@@ -413,7 +413,7 @@ class image_filter:
         self.calculated_features = []
         self.feature_names = []
         
-        self.diff_to_first_and_last(self.take_means, self.num_means) 
+        # self.diff_to_first_and_last(self.take_means, self.num_means) 
         self.Gaussian_4D_stack()
         self.diff_Gaussian('4D')
         self.Gradients()
