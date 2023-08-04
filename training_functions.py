@@ -142,10 +142,10 @@ def training_set_per_image(label_name, trainingpath, feat_data, client, lazy = F
         feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
         
         X, y = extract_training_data(truth, feat_stack)
-        return X,y
+        return X,y, True
     
     else:
-        return 'no labels', 'y'
+        return 'no labels', 'y', False
         print('label image is empty')
 
 class train_segmentation:
@@ -376,8 +376,8 @@ class train_segmentation:
                     print(label_name+' already done')
                     continue
                 print(label_name)
-                X, y = training_set_per_image(label_name, path, feat_data, self.client, self.lazy)
-                if not X == 'no labels':
+                X, y, labelflag = training_set_per_image(label_name, path, feat_data, self.client, self.lazy)
+                if labelflag:
                     self.training_dict[label_name] = X,y
                     if flag:
                         Xall = X
