@@ -105,23 +105,23 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
         
         # temporary workaround, make general
         if c1 == 'x' and c2 == 'time':
-            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0).data
+            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
         elif c1 == 'x' and c2 == 'y':
             feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2)
         elif c1 == 'x' and c2 == 'z':
             feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2)
         elif c1 == 'y' and c2 == 'z':
             feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2)
         elif c1 == 'y' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0)
         elif c1 == 'z' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0)
         else:
             print('coordinates not found')
         # if lazy:
@@ -132,9 +132,11 @@ def training_set_per_image(label_name, trainingpath, feat_data, lazy = False):
         #     feat_stack = feat_stack.compute()
         # else:
         if type(feat_stack) is not np.ndarray:
-                feat_stack = feat_stack.compute()
+                fut = client.scatter(feat_stack)
+                feat_stack = fut.result()
         if type(feat_stack_t_idp) is not np.ndarray:
-                feat_stack_t_idp = feat_stack_t_idp.compute()
+                fut = client.scatter(feat_stack_t_idp)
+                feat_stack_t_idp = fut.result()
                         
                 
         feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
@@ -241,10 +243,12 @@ class train_segmentation:
 #                 self.current_computed = True
                 
             if type(im) is not np.ndarray:
-                im = im.compute()
+                fut = client.scatter(im)
+                im = fut.result()
             if imfirst is not None and type(imfirst) is not np.ndarray:
-                imfirst = imfirst.compute()
-
+                fut = client.scatter(imfirst)
+                imfirst = fut.result()
+                
             im8 = im-im.min()
             im8 = im8/im8.max()*255
             
@@ -284,23 +288,23 @@ class train_segmentation:
         
         
         if c1 == 'x' and c2 == 'time':
-            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0).data
+            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
         elif c1 == 'x' and c2 == 'y':
             feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2)
         elif c1 == 'x' and c2 == 'z':
             feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2)
         elif c1 == 'y' and c2 == 'z':
             feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2)
         elif c1 == 'y' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0)
         elif c1 == 'z' and c2 == 'time':
             feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0).data
+            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0)
             
                    
         self.current_feat_stack = dask.array.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
@@ -323,12 +327,16 @@ class train_segmentation:
         #re-consider these lines
         if self.lazy and not self.current_computed and type(feat_stack) is not np.ndarray:
             print('now actually calculating the features')
-            feat_stack = feat_stack.persist() #compute() persist may prevent an memory blow up https://stackoverflow.com/questions/73770527/dask-compute-uses-twice-the-expected-memory
-            wait(feat_stack) #if you use persist(), you have to wait for the calculation to finish before passing the feat stack to sklearn
+            # feat_stack = feat_stack.persist() #compute() persist may prevent an memory blow up https://stackoverflow.com/questions/73770527/dask-compute-uses-twice-the-expected-memory
+            # wait(feat_stack) #if you use persist(), you have to wait for the calculation to finish before passing the feat stack to sklearn
+            fut = client.scatter(feat_stack)
+            feat_stack = fut.result()
+            
+            
             self.current_computed = True
         if type(feat_stack) is not np.ndarray:
             print('feat_stack is not a numpy array! check why')
-            feat_stack = feat_stack.compute()      
+            # feat_stack = feat_stack.compute()      
         
         self.current_feat_stack = feat_stack
         #train
