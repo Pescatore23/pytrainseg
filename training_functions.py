@@ -133,12 +133,14 @@ def training_set_per_image(label_name, trainingpath, feat_data, client, lazy = F
         # else:
         if type(feat_stack) is not np.ndarray:
                 fut = client.scatter(feat_stack)
-                feat_stack = fut.result().compute().data
-                del fut
+                fut = fut.result()
+                fut = fut.compute()
+                feat_stack = fut.data
         if type(feat_stack_t_idp) is not np.ndarray:
-                fut2 = client.scatter(feat_stack_t_idp)
-                feat_stack_t_idp = fut2.result().compute().data
-                del fut2
+                fut = client.scatter(feat_stack_t_idp)
+                fut = fut.result()
+                fut = fut.compute()
+                feat_stack_t_idp = fut.data
                         
                 
         feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
@@ -246,12 +248,15 @@ class train_segmentation:
                 
             if type(im) is not np.ndarray:
                 fut = self.client.scatter(im)
-                im = fut.result().compute().data
-                del fut
+                fut = fut.result()
+                fut = fut.compute()
+                im = fut.data
             if imfirst is not None and type(imfirst) is not np.ndarray:
-                fut2 = self.client.scatter(imfirst)
-                imfirst = fut2.result().compute().data
-                del fut2
+                fut = self.client.scatter(imfirst)
+                fut = fut.result()
+                fut = fut.compute()
+                imfirst = fut.data
+
                 
             im8 = im-im.min()
             im8 = im8/im8.max()*255
