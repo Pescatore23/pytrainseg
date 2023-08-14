@@ -136,13 +136,15 @@ def training_set_per_image(label_name, trainingpath, feat_data, client, lazy = F
                 fut = fut.result()
                 fut = fut.compute()
                 feat_stack = fut.data
-                client.restart_workers()
+		workers = client.cluster.workers
+                client.restart_workers(workers)
         if type(feat_stack_t_idp) is not np.ndarray:
                 fut = client.scatter(feat_stack_t_idp)
                 fut = fut.result()
                 fut = fut.compute()
                 feat_stack_t_idp = fut.data
-                client.restart_workers()
+		workers = client.cluster.workers
+                client.restart_workers(workers)
                 
         feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
         
