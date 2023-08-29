@@ -142,7 +142,6 @@ def training_set_per_image(label_name, trainingpath, feat_data, client, lazy = F
                 fut = fut.result()
                 fut = fut.compute()
                 feat_stack_t_idp = fut.data
-                workers = client.cluster.workers
                 client.restart()
                 
         feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
@@ -221,21 +220,21 @@ class train_segmentation:
         
         if not c1=='time':
             if c2 == 'x':
-                im = stage1.sel( x = p2).data #feature = 'original',
+                im = stage1.sel( x = p2)#feature = 'original',
                 # feat_stack = stage1feat.sel(x = p2).data
                 imfirst = None
             elif c2 == 'y':
-                im = stage1.sel( y = p2).data
+                im = stage1.sel( y = p2)
                 # feat_stack = stage1feat.sel(y = p2).data
                 imfirst = None
             elif c2 == 'z':
-                im = stage1.sel( z = p2).data
+                im = stage1.sel( z = p2)
                 # feat_stack = stage1feat.sel(z = p2).data
                 imfirst = None
             elif c2 == 'time':
-                im = stage1.sel(time = p2).data
+                im = stage1.sel(time = p2)
                 # feat_stack = stage1feat.sel(time = p2).data
-                imfirst = stage1.sel(time = 0).data
+                imfirst = stage1.sel(time = 0)
             
 #             if self.lazy:
 # #                 get the reference images directly as numpy array
@@ -253,11 +252,13 @@ class train_segmentation:
                 fut = fut.result()
                 fut = fut.compute()
                 im = fut.data
+                self.client.restart()
             if imfirst is not None and type(imfirst) is not np.ndarray:
                 fut = self.client.scatter(imfirst)
                 fut = fut.result()
                 fut = fut.compute()
                 imfirst = fut.data
+                self.client.restart()
 
                 
             im8 = im-im.min()
