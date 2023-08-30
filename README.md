@@ -13,8 +13,7 @@ Currently, the classes are not used as they have been layed out and some functio
 
 ## Main concepts
 
-The 4D image data is available in RAM in its entirety as dask array with appropiate chunks. The chunks then allow the lazy evaluation because calculating features for the full dataset at once is way larger than available RAM. I like to have my image data as netcdf4 (a normed h5df) on disk, but as long 
-as you can create a 4D dask array, you will be fine. As in TWS, a set of features is created for every pixel by applying a bunch of image filters. The new addition is the employment of 4D filters (e.g. 4D Gaussian Blur) and time specific filters (e.g. minimum grayvalue over all time steps). By manually labeling parts of the image, a random forest classifier is trained to 
+The 4D image data is ideally loaded by dask from h5df. The chunks then allow the lazy evaluation because calculating features for the full dataset at once is way larger than available RAM. I like to have my image data as netcdf4 (a normed h5df) on disk. As in TWS, a set of features is created for every pixel by applying a bunch of image filters. The new addition is the employment of 4D filters (e.g. 4D Gaussian Blur) and time specific filters (e.g. minimum grayvalue over all time steps). By manually labeling parts of the image, a random forest classifier is trained to 
 assign every pixel to the label classes based on its feature set.
 
 ## Contact
