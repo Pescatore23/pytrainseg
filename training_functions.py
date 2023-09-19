@@ -18,23 +18,32 @@ import pickle
 
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
+from dask.distributed import Client
 
 default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, random_state = 42, max_features=None) 
+
+def reboot_client(client, cluster):
+    client.shutdown()
+    client = Client(cluster)
+    return client
 
 def extract_training_data(truth, feat_stack, ids = None):
     #pixelwise training data
     phase1 = truth==1
     phase2 = truth==2
     phase3 = truth==4   
+    phase4 = truth==3 #3 and 4 are flipped for lagacy reasons and existing training data
     X1 = feat_stack[phase1]
     y1 = np.zeros(X1.shape[0])
     X2 = feat_stack[phase2]
     y2 = np.ones(X2.shape[0])
     X3 = feat_stack[phase3]
     y3 = 2*np.ones(X3.shape[0])
+    X4 = feat_stack[phase4]
+    y4 = 3*np.ones(X4.shape[0])
 
-    y = np.concatenate([y1,y2,y3])
-    X = np.concatenate([X1,X2,X3])
+    y = np.concatenate([y1,y2,y3,y4])
+    X = np.concatenate([X1,X2,X3,X4])
     
     if ids is not None:
         X = X[:,ids]
@@ -96,62 +105,6 @@ def extract_coords(labelname):
     p2 = int(parts[5])
     return c1, p1, c2, p2
 
-def training_set_per_image(label_name, trainingpath, feat_data, client, lazy = False):
-    c1, p1, c2, p2 = extract_coords(label_name)
-    # print(label_name)
-    # print(c1, p1, c2, p2)
-    truth = io.imread(os.path.join(trainingpath, label_name))
-    if np.any(truth>0):
-        
-        # temporary workaround, make general
-        if c1 == 'x' and c2 == 'time':
-            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
-        elif c1 == 'x' and c2 == 'y':
-            feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2)
-        elif c1 == 'x' and c2 == 'z':
-            feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2)
-        elif c1 == 'y' and c2 == 'z':
-            feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2)
-        elif c1 == 'y' and c2 == 'time':
-            feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0)
-        elif c1 == 'z' and c2 == 'time':
-            feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0)
-        else:
-            print('coordinates not found')
-        # if lazy:
-        #     print('Need to actually calculate the features for each slice, seems inefficient')
-        # #   not sure how efficient this is
-        # #   multiple training slices might be faster with the chunks
-        # #   probably getting the feature stack at least as persist is better
-        #     feat_stack = feat_stack.compute()
-        # else:
-        if type(feat_stack) is not np.ndarray:
-                fut = client.scatter(feat_stack)
-                fut = fut.result()
-                fut = fut.compute()
-                feat_stack = fut.data
-                client.restart_workers()
-        if type(feat_stack_t_idp) is not np.ndarray:
-                fut = client.scatter(feat_stack_t_idp)
-                fut = fut.result()
-                fut = fut.compute()
-                feat_stack_t_idp = fut.data
-                client.restart_workers()
-                
-        feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
-        
-        X, y = extract_training_data(truth, feat_stack)
-        return X,y, True
-    
-    else:
-        return 'no labels', 'y', False
-        print('label image is empty')
 
 class train_segmentation:
     def __init__(self,
@@ -372,6 +325,69 @@ class train_segmentation:
     def pickle_classifier(self):
         pickle.dump(self.clf, open(os.path.join(self.training_path, 'classifier.p'),'wb'))
     
+    def training_set_per_image(self, label_name, trainingpath, feat_data, lazy = False):
+        c1, p1, c2, p2 = extract_coords(label_name)
+        # print(label_name)
+        # print(c1, p1, c2, p2)
+        truth = io.imread(os.path.join(trainingpath, label_name))
+        if np.any(truth>0):
+            
+            # temporary workaround, make general
+            if c1 == 'x' and c2 == 'time':
+                feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
+                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
+            elif c1 == 'x' and c2 == 'y':
+                feat_stack = feat_data['feature_stack'].sel(x = p1, y = p2).data
+                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, y = p2)
+            elif c1 == 'x' and c2 == 'z':
+                feat_stack = feat_data['feature_stack'].sel(x = p1, z = p2).data
+                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, z = p2)
+            elif c1 == 'y' and c2 == 'z':
+                feat_stack = feat_data['feature_stack'].sel(y = p1, z = p2).data
+                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, z = p2)
+            elif c1 == 'y' and c2 == 'time':
+                feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2).data
+                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0)
+            elif c1 == 'z' and c2 == 'time':
+                feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2).data
+                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0)
+            else:
+                print('coordinates not found')
+            # if lazy:
+            #     print('Need to actually calculate the features for each slice, seems inefficient')
+            # #   not sure how efficient this is
+            # #   multiple training slices might be faster with the chunks
+            # #   probably getting the feature stack at least as persist is better
+            #     feat_stack = feat_stack.compute()
+            # else:
+            if type(feat_stack) is not np.ndarray:
+                    fut = self.client.scatter(feat_stack)
+                    fut = fut.result()
+                    fut = fut.compute()
+                    feat_stack = fut.data
+                    self.client.restart_workers()
+                    
+            if not len(self.client.cluster.workers)>0:
+                    self.client = reboot_client(self.client, self.cluster)
+                    # TODO client reboot if workers can't return
+            if type(feat_stack_t_idp) is not np.ndarray:
+                    fut = self.client.scatter(feat_stack_t_idp)
+                    fut = fut.result()
+                    fut = fut.compute()
+                    feat_stack_t_idp = fut.data
+                    self.client.restart_workers()
+            if not len(self.client.cluster.workers)>0:
+                    self.client = reboot_client(self.client, self.cluster)
+                    
+            feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
+            
+            X, y = extract_training_data(truth, feat_stack)
+            return X,y, True
+        
+        else:
+            return 'no labels', 'y', False
+            print('label image is empty')
+    
     def train(self, clear_dict= False, redo=False):
         path = self.label_path
         feat_data = self.feat_data #probably requires computed feature data, added the flag below
@@ -386,7 +402,7 @@ class train_segmentation:
                     print(label_name+' already done')
                     continue
                 print(label_name)
-                X, y, labelflag = training_set_per_image(label_name, path, feat_data, self.client, self.lazy)
+                X, y, labelflag = self.training_set_per_image(label_name, path, feat_data, self.client, self.lazy)
                 if labelflag:
                     self.training_dict[label_name] = X,y
                     if flag:
