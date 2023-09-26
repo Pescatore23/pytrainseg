@@ -210,25 +210,25 @@ class train_segmentation:
                 if not len(self.client.cluster.workers)>0:
                         self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
                         
-            if imfirst is not None and type(imfirst) is not np.ndarray:
-                fut = self.client.scatter(imfirst)
-                fut = fut.result()
-                fut = fut.compute()
-                imfirst = fut.data
-                self.client.restart(wait_for_workers=False)
-                if not len(self.client.cluster.workers)>0:
-                        self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
+            # if imfirst is not None and type(imfirst) is not np.ndarray:
+            #     fut = self.client.scatter(imfirst)
+            #     fut = fut.result()
+            #     fut = fut.compute()
+            #     imfirst = fut.data
+            #     self.client.restart(wait_for_workers=False)
+            #     if not len(self.client.cluster.workers)>0:
+            #             self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
 
                 
             im8 = im-im.min()
             im8 = im8/im8.max()*255
             
-            if imfirst is not None:
-                diff = im-imfirst
-                # diff = diff/diff.max()*255
-                self.current_diff_im = diff
-            else:
-                self.current_diff_im = None
+            # if imfirst is not None:
+            #     diff = im-imfirst
+            #     # diff = diff/diff.max()*255
+            #     self.current_diff_im = diff
+            # else:
+            #     self.current_diff_im = None
             
             slice_name = ''.join([c1,'_',str(p1),'_',c2,'_',str(p2),'_'])
             truthpath = os.path.join(self.label_path, ''.join(['label_image_',slice_name,'.tif']))
@@ -244,7 +244,7 @@ class train_segmentation:
             self.current_im = im
             self.current_im8 = im8
             # self.current_feat_stack = feat_stack
-            self.current_first_im = imfirst
+            # self.current_first_im = imfirst
             self.current_truth = truth
             self.current_result = resultim
             self.current_truthpath = truthpath
