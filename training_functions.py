@@ -206,12 +206,17 @@ class train_segmentation:
                 fut = fut.compute()
                 im = fut.data
                 self.client.restart()
+                if not len(self.client.cluster.workers)>0:
+                        self.client = reboot_client(self.client, self.cluster)
+                        
             if imfirst is not None and type(imfirst) is not np.ndarray:
                 fut = self.client.scatter(imfirst)
                 fut = fut.result()
                 fut = fut.compute()
                 imfirst = fut.data
                 self.client.restart()
+                if not len(self.client.cluster.workers)>0:
+                        self.client = reboot_client(self.client, self.cluster)
 
                 
             im8 = im-im.min()
