@@ -205,7 +205,7 @@ class train_segmentation:
                 fut = fut.result()
                 fut = fut.compute()
                 im = fut.data
-                self.client.restart()
+                self.client.restart(wait_for_workers=False)
                 if not len(self.client.cluster.workers)>0:
                         self.client = reboot_client(self.client, self.cluster)
                         
@@ -214,7 +214,7 @@ class train_segmentation:
                 fut = fut.result()
                 fut = fut.compute()
                 imfirst = fut.data
-                self.client.restart()
+                self.client.restart(wait_for_workers=False)
                 if not len(self.client.cluster.workers)>0:
                         self.client = reboot_client(self.client, self.cluster)
 
@@ -372,7 +372,7 @@ class train_segmentation:
                     fut = fut.result()
                     fut = fut.compute()
                     feat_stack = fut.data
-                    self.client.restart()
+                    self.client.restart(wait_for_workers=False)
                     
             if not len(self.client.cluster.workers)>0:
                     self.client = reboot_client(self.client, self.cluster)
@@ -382,7 +382,7 @@ class train_segmentation:
                     fut = fut.result()
                     fut = fut.compute()
                     feat_stack_t_idp = fut.data
-                    self.client.restart()
+                    self.client.restart(wait_for_workers=False)
             if not len(self.client.cluster.workers)>0:
                     self.client = reboot_client(self.client, self.cluster)
                     
