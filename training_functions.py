@@ -18,12 +18,13 @@ import pickle
 
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
-from dask.distributed import Client
+from dask.distributed import Client, LocalCluster
 
 default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, random_state = 42, max_features=None) 
 
-def reboot_client(client, cluster):
+def reboot_client(client, dashboard_address=':35000', memory_limit = '400GB', n_workers=2):
     client.shutdown()
+    cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers)
     client = Client(cluster)
     return client
 
@@ -207,7 +208,7 @@ class train_segmentation:
                 im = fut.data
                 self.client.restart(wait_for_workers=False)
                 if not len(self.client.cluster.workers)>0:
-                        self.client = reboot_client(self.client, self.cluster)
+                        self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
                         
             if imfirst is not None and type(imfirst) is not np.ndarray:
                 fut = self.client.scatter(imfirst)
@@ -216,7 +217,7 @@ class train_segmentation:
                 imfirst = fut.data
                 self.client.restart(wait_for_workers=False)
                 if not len(self.client.cluster.workers)>0:
-                        self.client = reboot_client(self.client, self.cluster)
+                        self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
 
                 
             im8 = im-im.min()
@@ -375,7 +376,7 @@ class train_segmentation:
                     self.client.restart(wait_for_workers=False)
                     
             if not len(self.client.cluster.workers)>0:
-                    self.client = reboot_client(self.client, self.cluster)
+                    self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
                     # TODO client reboot if workers can't return
             if type(feat_stack_t_idp) is not np.ndarray:
                     fut = self.client.scatter(feat_stack_t_idp)
@@ -384,7 +385,7 @@ class train_segmentation:
                     feat_stack_t_idp = fut.data
                     self.client.restart(wait_for_workers=False)
             if not len(self.client.cluster.workers)>0:
-                    self.client = reboot_client(self.client, self.cluster)
+                    self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
                     
             feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
             
