@@ -367,7 +367,7 @@ class train_segmentation:
                     fut = fut.result()
                     fut = fut.compute()
                     feat_stack = fut.data
-                    self.client.restart_workers()
+                    self.client.restart()
                     
             if not len(self.client.cluster.workers)>0:
                     self.client = reboot_client(self.client, self.cluster)
@@ -377,7 +377,7 @@ class train_segmentation:
                     fut = fut.result()
                     fut = fut.compute()
                     feat_stack_t_idp = fut.data
-                    self.client.restart_workers()
+                    self.client.restart()
             if not len(self.client.cluster.workers)>0:
                     self.client = reboot_client(self.client, self.cluster)
                     
@@ -404,7 +404,7 @@ class train_segmentation:
                     print(label_name+' already done')
                     continue
                 print(label_name)
-                X, y, labelflag = self.training_set_per_image(label_name, path, feat_data, self.client, self.lazy)
+                X, y, labelflag = self.training_set_per_image(label_name, path, feat_data, self.lazy)
                 if labelflag:
                     self.training_dict[label_name] = X,y
                     if flag:
