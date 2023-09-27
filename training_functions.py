@@ -373,21 +373,21 @@ class train_segmentation:
                     fut = fut.result()
                     fut = fut.compute()
                     feat_stack = fut.data
-		    try:
-	                self.client.restart()
+                    try:
+                        self.client.restart()
                     except:
 #            if not len(self.client.cluster.workers)>1:
- 	                self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
+     	                self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
                     # TODO client reboot if workers can't return
             if type(feat_stack_t_idp) is not np.ndarray:
                     fut = self.client.scatter(feat_stack_t_idp)
                     fut = fut.result()
                     fut = fut.compute()
                     feat_stack_t_idp = fut.data
-		    try:
+                    try:
                         self.client.restart()
 #            if not len(self.client.cluster.workers)>1:
-		    except:
+                    except:
                         self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
                     
             feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
