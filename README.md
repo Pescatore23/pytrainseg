@@ -2,7 +2,7 @@
 
 ## Description
 
-This collection of codes extends the idea of trainable Weka segmentation (TWS, https://imagej.net/plugins/tws/) to 4D. The implementation is in Python using dask for lazy evaluation and juypter for interactive training. As any ML method, the 4D ML segmentation is computationally very heavy. Consider if it is really necessary.
+This collection of codes extends the idea of trainable Weka segmentation (TWS, https://imagej.net/plugins/tws/) to 4D. The implementation is in Python using dask for lazy evaluation and jupyterLab for interactive training. As any ML method, the 4D ML segmentation is computationally very heavy. Consider if it is really necessary.
 
 
 ## Usage
