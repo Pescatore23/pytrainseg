@@ -399,7 +399,7 @@ class train_segmentation:
             return 'no labels', 'y', False
             print('label image is empty')
     
-    def train(self, clear_dict= False, redo=False):
+    def train(self, clear_dict= False, redo=False, first_set=0):
         path = self.label_path
         feat_data = self.feat_data #probably requires computed feature data, added the flag below
         if clear_dict:
@@ -408,7 +408,7 @@ class train_segmentation:
         if len(labelnames)>0:
             print('training with existing label images')
             flag = True
-            for label_name in labelnames:
+            for label_name in labelnames[first_set:]:
                 if label_name in self.training_dict.keys() and not redo: 
                     print(label_name+' already done')
                     continue
