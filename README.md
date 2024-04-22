@@ -6,14 +6,13 @@ This collection of codes extends the idea of trainable Weka segmentation (TWS, h
 
 
 ## Usage
-This is a project in development. There are three python classes for image feature creation, training and segmentation called from a main jupyter notebook. 
-It might work if you execute the example notebook from top to bottom. Depending on your hardware and python environment, this might not work at all or crash eventually. 
+This is a project in development. Image feature creation, training and segmentation are called from a main jupyter notebook. 
+It might work if you execute the example notebook from top to bottom. Depending on your hardware and python environment, this might not work at all or crash eventually, but it has gotten much more stable in the recent past ;) 
 I am working on a 64 cores 1 TB RAM 3TB SSD work station for my 4D-CT data (roughly 1700x150x800x70 voxel). I would start testing with a much smaller ROI.
-Currently, the classes are not used as they have been layed out and some functionalities are not compatible.
 
 ## Main concepts
 
-The 4D image data has to be loaded by dask itself from h5df. I like to have my image data as netcdf4 (a normed h5df) on a SSD. Dask creates chunkes (pieces) of the data which then allow the lazy loading and evaluation. Calculating features for the full dataset at once is way larger than available RAM.  As in TWS, a set of features is created for every pixel by applying a bunch of image filters. The new addition is the employment of 4D filters (e.g. 4D Gaussian Blur) and time specific filters (e.g. minimum grayvalue over all time steps). By manually labeling parts of the image, a random forest classifier is trained to assign every pixel to the label classes based on its feature set.
+The 4D image data has to be loaded by dask itself from h5df. Storing the data as netcdf4 (a normed h5df) on a SSD adds the convenience of using xarray for rapid data viewing. Dask creates chunkes (pieces) of the data which then allow the lazy loading and evaluation. Calculating features for the full dataset at once is way larger than available RAM and can only be executed in pieces (chunks). As in TWS, a set of features is created for every pixel by applying a bunch of image filters. The new addition is the employment of 4D filters (e.g. 4D Gaussian Blur) and time specific filters (e.g. minimum grayvalue over all time steps). By manually labeling parts of the image, a random forest classifier is trained to assign every pixel to the label classes based on its feature set.
 
 ## Contact
 
