@@ -1,9 +1,8 @@
-# PyTrainSeg - preliminary implementation of Weka-like 4D machine learning segmentation
+# PyTrainSeg - implementation of Weka-like 4D machine learning segmentation
 
 ## Description
 
 This collection of codes extends the idea of trainable Weka segmentation (TWS, https://imagej.net/plugins/tws/) to 4D. The implementation is in Python using dask for lazy evaluation and jupyterLab for interactive training. As any ML method, the 4D ML segmentation is computationally very heavy. Consider if it is really necessary.
-
 
 ## Usage
 This is a project in development. Image feature creation, training and segmentation are called from a main jupyter notebook. 
@@ -26,3 +25,19 @@ Cheers,
 Robert Fischer
 
 robert.fischer@psi.ch
+
+## Reference
+
+PyTrainSeg was published alongside this paper:
+```bibtex
+@article{Fischer2024,
+   author = {Fischer, R. and Dessiex, M. and Marone, F. and Büchi, Felix N.},
+   title = {Gas-induced structural damages in bipolar membrane forward bias CO2 electrolysis studied by fast X-ray tomography},
+   journal = {ACS Applied Energy Materials},
+   DOI = {10.1021/acsaem.3c02882.},
+   year = {2024},
+   type = {Journal Article}
+}
+```
+
+If you like this repository and use it for your work, please consider a citation.
