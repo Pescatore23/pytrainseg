@@ -47,7 +47,7 @@ def extract_training_data(truth, feat_stack, ids = None):
     X = np.concatenate([X1,X2,X3,X4])
     
     if ids is not None:
-        X = X[:,ids]
+        X = X[:,ids]   # ids is a binary list where True entries indicate the features to be considered, use in conjuction with feature name list. TODO: keep coordinated with adaptive feature creation
     return X,y
 
 def classify(X,y,im, feat_stack, clf):
@@ -143,6 +143,7 @@ class train_segmentation:
         # self.combined_feature_names = list(self.feature_names) + list(self.feature_names_time_independent) #no idea why this is not working
         self.lazy = lazy
 
+#%%%%%%%%%%%%%%%%%%%%%%%
     def suggest_training_set(self):
         dimensions = list(self.feat_data.coords.keys())[:-1]
 
@@ -153,6 +154,7 @@ class train_segmentation:
         print('You could try ',test_dims[0],'=',str(p1),' and ',test_dims[1],'=',str(p2))
         print('However, please sort it like the original '+''.join(dimensions))
         
+    #%%%%%%%%%%%%%%%%%%%%%%%%%
     def load_training_set(self, c1, p1, c2, p2):
         
         # data = self.feat_data['feature_stack']
@@ -283,6 +285,7 @@ class train_segmentation:
         if type(self.current_feat_stack) is not np.ndarray:
             self.current_computed = False
     
+    #%%%%%%%%%%%%
     def train_slice(self):
         #fetch variables
         im = self.current_im
@@ -399,6 +402,7 @@ class train_segmentation:
             return 'no labels', 'y', False
             print('label image is empty')
     
+    #%%%%%%%%%%%%%%%%%%%%%%%%%
     def train(self, clear_dict= False, redo=False, first_set=0):
         path = self.label_path
         feat_data = self.feat_data #probably requires computed feature data, added the flag below
