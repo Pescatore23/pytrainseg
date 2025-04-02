@@ -104,6 +104,7 @@ class training:
             print('no training path given, re-init with setting training_path')
         self.label_path = os.path.join(training_path, 'label_images')
         self.training_dict = {}
+        self.clf_method = clf_method
         if not os.path.exists(self.label_path):
             os.mkdir(self.label_path)        
         existing_sets = os.listdir(self.label_path)
@@ -120,13 +121,11 @@ class training:
         p1 = np.random.choice(range(len(self.feat_data[test_dim])))
         ts = np.random.choice(timesteps)
         print('You could try ',test_dim,'=',str(p1),' at time step ',str(ts))
-        print('However, please sort it like the original '+''.join(dimensions))
         
-    def load_training_set(self, c1, p1, ts, c2 = 'time'):
+    def load_training_set(self, c1, p1, c2, p2):
         
         # select correct feature stack for slice
         feat_data = self.feat_data
-        p2 = ts
         if c1 == 'x':
             feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
             feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
@@ -140,6 +139,7 @@ class training:
         self.current_coordinates = [c1,p1,c2,p2]
         self.current_feat_stack = feat_stack
         self.feat_stack_t_idp = feat_stack_t_idp
+        self.current_result = np.zeros((feat_stack.shape[0],feat_stack.shape[1]), dtype=np.uint8)
         
         # select the raw image as default and calculate it
         im = feat_stack[:,:,0]
@@ -184,6 +184,7 @@ class training:
         resultim, clf, training_dict = training_function(truth, feat_stack, training_dict, slice_name, self.clf_method)
         self.training_dict = training_dict #this necessary ? yes!
         self.clf = clf
+        self.current_result = resultim
         
     def training_set_per_image(self, label_name, trainingpath, feat_data, lazy = False):
         c1, p1, c2, p2 = extract_coords(label_name)

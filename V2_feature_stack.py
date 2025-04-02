@@ -41,7 +41,8 @@ class image_filter:
                  ):
         if sigma_for_ref not in sigmas:
             sigmas.append(sigma_for_ref)
-            
+
+        self.ignored_features = ignored_features
         self.sigma_for_ref = sigma_for_ref
         self.sigmas = sigmas   
         
