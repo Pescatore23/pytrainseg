@@ -36,7 +36,7 @@ class image_filter:
                  sigma_t = 40,
                  sigma_0_derivatives = False,
                  take_means = True,
-                 num_means = 7,
+                 num_means = 3,
                  ignored_features = None
                  ):
         if sigma_for_ref not in sigmas:
@@ -112,6 +112,7 @@ class image_filter:
             self.feature_names.append(name)
             
     def diff_to_first_and_last(self, take_mean, means):
+        #  use small sigma Gaussian instead of raw data ?
         DA = self.data
         if take_mean:
             first = DA[...,:means].mean(axis=-1)
@@ -119,29 +120,20 @@ class image_filter:
         else:
             first = DA[...,0]
             last = DA[...,-1]
-        if type(first) is not np.ndarray:  # TODO can this compute be avoided?
-            first = first.compute()
-            last = last.compute()
 
-        if type(first) is np.ndarray: #TODO: this has to be possible differently, but I remember the pain without faking up a 4D array and explcit calculation
-            # maybe now better in new dask ??? TODO: priority to test this
-            firsts = dask.array.stack([first]*DA.shape[-1], axis=-1)
-            lasts = dask.array.stack([last]*DA.shape[-1], axis=-1)
-            firsts = firsts.rechunk(DA.chunksize)
-            lasts = lasts.rechunk(DA.chunksize)
-            DF = DA - firsts
-            DL = DA - lasts
-            self.calculated_features.append(DF)
-            self.feature_names.append('diff_to_first_')
-            self.calculated_features.append(DL)
-            self.feature_names.append('diff_to_last_')
-            
-            self.feature_names_time_independent.append('first_')
-            self.calculated_features_time_independent.append(first)
-            self.feature_names_time_independent.append('last_')
-            self.calculated_features_time_independent.append(last)
-        else:
-            print('Diff first and last is an unexplainable pain in the ass, solve this at one point')
+
+        DF = DA - first[...,None]
+        DL = DA - last[...,None]
+        self.calculated_features.append(DF)
+        self.feature_names.append('diff_to_first_')
+        self.calculated_features.append(DL)
+        self.feature_names.append('diff_to_last_')
+        
+        self.feature_names_time_independent.append('first_')
+        self.calculated_features_time_independent.append(first)
+        self.feature_names_time_independent.append('last_')
+        self.calculated_features_time_independent.append(last)
+
     
     def time_stats(self):
         DA = self.data
@@ -250,7 +242,7 @@ class image_filter:
                 
     def prepare(self):   
          
-         # self.diff_to_first_and_last(self.take_means, self.num_means) 
+         
          self.Gaussian_4D_stack()
          self.diff_Gaussian('4D')
          self.Gradients()
@@ -261,7 +253,7 @@ class image_filter:
          self.diff_Gaussian('space')
          # self.rank_filter_stack() #dask_image might provide rank-like filters soon you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
          self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
-         
+         self.diff_to_first_and_last(self.take_means, self.num_means) 
          if self.loc_features:
              self.pixel_coordinates()
          #  #this feature is a double-edged sword, use with care!!
