@@ -282,8 +282,24 @@ class image_filter:
                     ids_independent[i] = False
             self.reduce_feature_stack(ids_time, ids_independent, verbose=self.verbose)
             
+    def create_feature_ids(self, feature_names_to_use):
+        # time dependent features
+        ids_time = np.zeros(len(self.feature_names), dtype=bool)
+        for i in range(len(ids_time)):
+            if self.feature_names[i] in feature_names_to_use:
+                ids_time[i] = True
+        self.ids_time = ids_time
+        
+        # time in-dependent features
+        ids_independent = np.zeros(len(self.feature_names), dtype=bool)
+        for i in range(len(ids_independent)):
+            if self.feature_names_time_independent[i] in feature_names_to_use:
+                ids_independent[i] = True
+        self.ids_independent = ids_independent
+        
             
-    def reduce_feature_stack(self, ids_time, ids_independent):
+            
+    def reduce_feature_stack(self, feature_names_to_use):
         # what about adding features? --> not implemented, better idea to start from the start and use saved label images
         # in jupyter notebook to add a step to reduce feature stack
         # TODO: option selection in GUI would be nice, maybe jupyter widget is a straightforward option
@@ -304,6 +320,9 @@ class image_filter:
         2 lists of feature names
 
         """
+        self.create_feature_ids(feature_names_to_use)
+        ids_time = self.ids_time
+        ids_independent = self.ids_independent
         
         self.reduced_stack = self.feature_stack[...,ids_time]
         self.reduced_stack_time_independent = self.feature_stack[...,ids_independent]
