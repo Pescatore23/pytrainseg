@@ -265,6 +265,8 @@ class image_filter:
         if not self.prepared:
             print('prepare first')
         else:
+            self.feature_names = np.array(self.feature_names)
+            self.feature_names_time_independent = np.array(self.feature_names_time_independent)
             self.stack_has_been_reduced = False
             self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
             self.feature_stack_time_independent = dask.array.stack(self.calculated_features_time_independent, axis=3)
@@ -291,7 +293,7 @@ class image_filter:
         self.ids_time = ids_time
         
         # time in-dependent features
-        ids_independent = np.zeros(len(self.feature_names), dtype=bool)
+        ids_independent = np.zeros(len(self.feature_names_time_independent), dtype=bool)
         for i in range(len(ids_independent)):
             if self.feature_names_time_independent[i] in feature_names_to_use:
                 ids_independent[i] = True
@@ -325,7 +327,7 @@ class image_filter:
         ids_independent = self.ids_independent
         
         self.reduced_stack = self.feature_stack[...,ids_time]
-        self.reduced_stack_time_independent = self.feature_stack[...,ids_independent]
+        self.reduced_stack_time_independent = self.feature_stack_time_independent[...,ids_independent]
         self.feature_names_reduced  = self.feature_names[ids_time]
         self.feature_names_reduced_time_independent = self.feature_names_time_independent[ids_independent]
         self.feature_selection = ids_time
@@ -347,7 +349,7 @@ class image_filter:
             feature_names = self.feature_names_reduced
             feature_names_time_independent = self.feature_names_reduced_time_independent
             feature_stack = self.reduced_stack
-            feature_stack_time_independent = self.feature_stack_reduced_time_independent
+            feature_stack_time_independent = self.reduced_stack_time_independent
             print('using reduced feature stack')
         else:
             shp = self.feature_stack.shape
