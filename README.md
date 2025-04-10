@@ -1,3 +1,7 @@
+# Deprecation notice and new project address
+
+This project continues at https://github.com/Pescatore23/pytrainseg because I have left PSI and also PSI will abandon gitlab in summer '25.
+
 # PyTrainSeg - implementation of Weka-like 4D machine learning segmentation
 
 ## Description
