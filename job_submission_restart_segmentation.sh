@@ -21,4 +21,4 @@ conda activate base
 
 # Execute command in the container, ipython for debugging to avoid defaul python, change back to python eventually
 # srun python -u train_random.py $ARGS
-srun python -u ~/lib/pytrainseg/pick_up_crashed_segemntation.py
+srun python -u ~/lib/pytrainseg/pick_up_crashed_segmentation.py
