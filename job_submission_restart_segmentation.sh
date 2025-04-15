@@ -17,7 +17,8 @@ conda activate base
 # debugging flags (optional)
 # export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
+srun dask-scheduler --scheduler-file scheduler.json
+surn dask-worker --nworkers=2 --memory-limit 160GB --scheduler-file scheduler.json
 
 # Execute command in the container, ipython for debugging to avoid defaul python, change back to python eventually
-# srun python -u train_random.py $ARGS
-srun ipython ~/lib/pytrainseg/pick_up_crashed_segmentation.py
+srun python ~/lib/pytrainseg/pick_up_crashed_segmentation.py
