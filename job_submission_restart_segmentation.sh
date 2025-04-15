@@ -10,7 +10,6 @@
 
 # Activate conda env
 export PYTHONPATH=''
-#eval "$(/store/empa/em13/fischer/lib/miniconda3/bin/conda shell.bash hook)"
 #conda activate membrane_fingering
 eval "$(/das/home/fische_r/miniconda3/bin/conda shell.bash hook)"
 conda activate base
@@ -21,4 +20,4 @@ conda activate base
 
 # Execute command in the container, ipython for debugging to avoid defaul python, change back to python eventually
 # srun python -u train_random.py $ARGS
-srun python -u ~/lib/pytrainseg/pick_up_crashed_segmentation.py
+srun ipython ~/lib/pytrainseg/pick_up_crashed_segmentation.py

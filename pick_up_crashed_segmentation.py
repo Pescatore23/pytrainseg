@@ -14,7 +14,8 @@ import numpy as np
 import dask
 import dask.array
 import pickle
-from dask.distributed import Client, LocalCluster
+
+from dask.distributed import Client #, LocalCluster
 import socket
 import subprocess
 import h5py
@@ -131,18 +132,21 @@ feature_names_to_use = ['Gaussian_4D_Blur_0.0',
 dask.config.config['temporary-directory'] = temppath
 def boot_client(dashboard_address=':35000', memory_limit = memlim, n_workers=2): # 2 workers appears to be the optimum, will still distribute over the full machine
     # tempfolder = temppath  #a big SSD is a major adavantage to allow spill to disk and still be efficient. large dataset might crash with too small SSD or be slow with normal HDD
-    cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers, silence_logs=logging.ERROR) #settings optimised for mpc2959, play around if needed, if you know nothing else is using RAM then you can almost go to the limit
-    client = Client(cluster) #don't show warnings, too many seem to block execution
+    #cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers, silence_logs=logging.ERROR) #settings optimised for mpc2959, play around if needed, if you know nothing else is using RAM then you can almost go to the limit
+    #client = Client(cluster) #don't show warnings, too many seem to block execution
+    client = Client('tcp://129.129.85.172:8786')
     print('Dashboard at '+client.dashboard_link)
-    return client, cluster
+    return client #, cluster
 
 def reboot_client(client, dashboard_address=':35000', memory_limit = memlim, n_workers=2):
     client.shutdown()
-    cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers, silence_logs=logging.ERROR)
-    client = Client(cluster)
+    #cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers, silence_logs=logging.ERROR)
+    #client = Client(cluster)
+    client = Client('tcp://129.129.85.172:8786')
     return client
 
-client, cluster = boot_client()
+#client, cluster = boot_client()
+client = boot_client()
 
 imagepath = os.path.join(training_path, '01_'+sample+'_cropped.nc')
 file = h5py.File(imagepath)
@@ -168,8 +172,8 @@ if not os.path.exists(training_path_sample):
 TS = training(training_path=training_path_sample)
 TS.client = client
 IF.client = client
-TS.cluster = cluster
-IF.cluster = cluster
+#TS.cluster = cluster
+#IF.cluster = cluster
 TS.memlim = memlim
 TS.n_workers = 2
 
@@ -256,9 +260,9 @@ for i in range(restart_i,imax):
             print('hit the edge (one dimension 0), ignore')
             continue
         part = calculate_part(part)
-        client = get_the_client_back(client)
+        #client = get_the_client_back(client)
         part_idp = calculate_part(part_idp)
-        client = get_the_client_back(client)
+        #client = get_the_client_back(client)
         
         part_idp = np.stack([part_idp]*shp[-1], axis=-2)[:,:,:,0,:,:] #expand in time, a bit ugly, could maybe more elegant
         part = np.concatenate([part, part_idp], axis = -1)
