@@ -24,7 +24,7 @@ import warnings
 warnings.filterwarnings('ignore')
 import json
 
-scheduler_dict = json.load(open('scheduler.json'.'r'))
+scheduler_dict = json.load(open('/das/home/fische_r/scheduler.json','r'))
 scheduler_address = scheduler_dict['address']
 
 
@@ -40,6 +40,7 @@ cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask doe
 
 #paths
 host = socket.gethostname()
+print(host)
 if host == 'mpc2959.psi.ch':
     temppath = '/mnt/SSD/fische_r/tmp'
     training_path =  '/mnt/SSD/fische_r/Tomcat_2/'
@@ -231,6 +232,7 @@ piecepath = os.path.join(os.path.join(temppath, 'segmentation_pieces'))
 restart_i = 0
 restart_j = 0  #replace with the iterations you coudl reach before dask crashed
 # get from the written files the restart coordinates
+print(piecepath)
 if os.path.exists(piecepath):
     ij_mat = np.zeros((imax,jmax), dtype=bool)
     for filename in os.listdir(piecepath):
@@ -239,6 +241,7 @@ if os.path.exists(piecepath):
         ij_mat[i,j] = True
         restart_i = int(np.min(np.argmin(ij_mat, axis=0)))
         restart_j = int(np.max(np.argmin(ij_mat, axis=1)))
+
 
 print('restarting at:',restart_i, restart_j)
 
@@ -258,6 +261,10 @@ for i in range(restart_i,imax):
         start_j = restart_j
     for j in range(start_j,jmax):
         print(j)
+        tmpfile = os.path.join(piecepath, 'seg_i_'+str(i)+'_j_'+str(j)+'_.p')
+        if os.path.exists(tmpfile):
+            print(i,j,'already exists, skipping')
+            continue
         part = feat[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:,:] 
         part_idp = feat_idp[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:]  
         if 0 in part.shape:
@@ -281,7 +288,7 @@ for i in range(restart_i,imax):
         # put segs together when all calculated
         seg = seg.reshape(shp_orig[:4])
 
-        pickle.dump(seg, open(os.path.join(piecepath, 'seg_i_'+str(i)+'_j_'+str(j)+'_.p'), 'wb'))
+        pickle.dump(seg, open(tmpfile, 'wb'))
         
 segs = np.zeros(shp_raw, dtype=np.uint8)
 

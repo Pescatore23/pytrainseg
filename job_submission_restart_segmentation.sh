@@ -9,16 +9,21 @@
 
 
 # Activate conda env
-export PYTHONPATH=''
+#export PYTHONPATH=''
 #conda activate membrane_fingering
-eval "$(/das/home/fische_r/miniconda3/bin/conda shell.bash hook)"
-conda activate base
+#eval "$(/das/home/fische_r/miniconda3/bin/conda shell.bash hook)"
+#conda activate base
 
 # debugging flags (optional)
 # export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-srun dask-scheduler --scheduler-file scheduler.json
-surn dask-worker --nworkers=2 --memory-limit 160GB --scheduler-file scheduler.json
+#srun dask scheduler --scheduler-file scheduler.json &
+#sleep 30
+#echo scheduler loaded
+#srun dask worker --nworkers=2 --memory-limit 160GB --scheduler-file scheduler.json 
+#sleep 60
+#echo worker added
 
-# Execute command in the container, ipython for debugging to avoid defaul python, change back to python eventually
-srun python ~/lib/pytrainseg/pick_up_crashed_segmentation.py
+# srun python ~/lib/pytrainseg/pick_up_crashed_segmentation.py
+
+srun bash -l ~/lib/pytrainseg/local_script_restart_segmentation.sh
