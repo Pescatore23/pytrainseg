@@ -230,11 +230,14 @@ class training:
             feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
             
             X, y = extract_training_data(truth, feat_stack)
-            return X,y
+            check_flag = True
+            return X,y, check_flag
         
         else:
-            return 'no labels', 'y', False
             print('label image is empty')
+            check_flag = False
+            return 'no labels', 'y', check_flag
+            
         
     def train(self, clear_dict= False, redo=False, first_set=0):
         path = self.label_path
@@ -250,21 +253,23 @@ class training:
                     print(label_name+' already done')
                     continue
                 print(label_name)
-                X, y = self.training_set_per_image(label_name, path, feat_data)
-                self.training_dict[label_name] = X,y
-                if flag:
-                    Xall = X
-                    yall = y
-                    flag = False
-                else:
-                    Xall = np.concatenate([Xall,X])
-                    yall = np.concatenate([yall,y])
-            if flag:
-                print('no label image actually contained labels, no classifier trained')
-            else:
-                clf =  self.clf_method
-                clf.fit(Xall, yall)
-                self.clf = clf  
+                X, y, check_flag = self.training_set_per_image(label_name, path, feat_data)
+                if check_flag: self.training_dict[label_name] = X,y
+
+        ### uncommented to not train classifier at this stage (will be done after labeling new set at the cost of not having an overlay at first)
+                # if flag:
+                #     Xall = X
+                #     yall = y
+                #     flag = False
+                # else:
+                #     Xall = np.concatenate([Xall,X])
+                #     yall = np.concatenate([yall,y])
+            # if flag:
+            #     print('no label image actually contained labels, no classifier trained')
+            # else:
+            #     clf =  self.clf_method
+            #     clf.fit(Xall, yall)
+            #     self.clf = clf  
         else:
             print('no label images found, start creating some')
 

@@ -53,6 +53,11 @@ elif host[:3] == 'ra-':
     training_path = '/das/home/fische_r/interlaces/Tomcat_2'
     pytrainpath = '/das/home/fische_r/lib/pytrainseg'
     memlim = '160GB'  # also fine on the small nodes, you can differentiate more if you want
+elif host[:4] == 'hpc7': # experiment with the wood data on the big ESRF cluster node
+    temppath = '/tmp/robert'
+    training_path = '/home/esrf/rofische/data_robert/Tomcat_2'
+    pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
+    memlim = '650GB'
 else:
     print('host '+host+' currently not supported')
     
