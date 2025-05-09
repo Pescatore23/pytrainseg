@@ -24,7 +24,7 @@ import warnings
 warnings.filterwarnings('ignore')
 import json
 
-scheduler_dict = json.load(open('/das/home/fische_r/scheduler.json','r'))
+scheduler_dict = json.load(open('/home/esrf/rofische/scheduler.json','r'))
 scheduler_address = scheduler_dict['address']
 
 
@@ -57,7 +57,7 @@ elif host[:4] == 'hpc7': # experiment with the wood data on the big ESRF cluster
     temppath = '/tmp/robert'
     training_path = '/home/esrf/rofische/data_robert/Tomcat_2'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
-    memlim = '650GB'
+    memlim = '750GB'
 else:
     print('host '+host+' currently not supported')
     
@@ -76,7 +76,7 @@ os.chdir(cwd)
 ######## need to be consitent with original jupyter notebook
 sample = 'R_m7_33_200_1_II'
 prefix = '2025-05-07_git_sha_ebc58e6' #for classifier filepath
-dim1 = 72#better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
+dim1 = 56 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
 #################
 
 # feature_names_to_use = ['Gaussian_4D_Blur_0.0',
@@ -161,7 +161,7 @@ client = boot_client()
 imagepath = os.path.join(training_path, '01_'+sample+'_cropped.nc')
 file = h5py.File(imagepath)
 
-chunk_space = 36 # potential for optmisation by matching chunksize with planned image filter kernels and file structure on disk for fast data streaming
+chunk_space = dim1 # potential for optmisation by matching chunksize with planned image filter kernels and file structure on disk for fast data streaming
 chunks = (chunk_space,chunk_space,chunk_space,len(file['time']))
 da = dask.array.from_array(file['image_data'], chunks= chunks)
 
@@ -172,7 +172,7 @@ shp_raw = shp
 
 IF.prepare()
 IF.stack_features()
-IF.reduce_feature_stack(feature_names_to_use)
+#IF.reduce_feature_stack(feature_names_to_use)
 IF.make_xarray()
 
 training_path_sample = os.path.join(training_path, sample)
@@ -232,7 +232,7 @@ dim2 = int(round_up(aspect*dim1, 0))
 jmax = int(round_up(dimsize[-2]/dim1, 0))
 imax = int(round_up(dimsize[-1]/dim2, 0))
 
-piecepath = os.path.join(os.path.join(temppath, 'segmentation_pieces'))
+piecepath = os.path.join(os.path.join(training_path_sample, 'segmentation_pieces'))
 
 restart_i = 0
 restart_j = 0  #replace with the iterations you coudl reach before dask crashed
