@@ -4,8 +4,7 @@ Spyder Editor
 
 This is a temporary script file.
 
-TODO: allow general deselection. does it it need a rerun of "prepare"?
-TODO: allow deselection in derived features (gradients, hessian)
+TODO: store ML settings and parameters somewhere as metadata
 
 """
 
@@ -37,7 +36,10 @@ class image_filter:
                  sigma_0_derivatives = False,
                  take_means = True,
                  num_means = 3,
-                 ignored_features = None
+                 ignored_features = None,
+                 sigma_unsharp = 1,
+                 weight_unsharp = 0.6,
+                 preprocess_with_unsharp_mask = False
                  ):
         if sigma_for_ref not in sigmas:
             sigmas.append(sigma_for_ref)
@@ -45,6 +47,11 @@ class image_filter:
         self.ignored_features = ignored_features
         self.sigma_for_ref = sigma_for_ref
         self.sigmas = sigmas   
+        
+        #preprocessing parameters for unsharp mask (do this in a seperate step? lowpass filtering definetly has to happen outside on GPUs)
+        self.weight_unsharp = weight_unsharp
+        self.sigma_unsharp = sigma_unsharp
+        self.use_unsharp = preprocess_with_unsharp_mask
         
         #wheter considering means for first and last time step
         self.take_means = take_means
@@ -71,6 +78,16 @@ class image_filter:
         self.computed = False
         self.verbose = False
     
+    def preprocess_with_unsharp_mask(self):
+        #ImageJ definition
+        # https://imagej.net/ij/developer/source/ij/plugin/filter/UnsharpMask.java.html
+        im = self.data
+        weight = self.weight_unsharp
+        sigma = self.sigma_unsharp
+        blur = Gaussian_Blur_4D(im, sigma)
+        self.data = (im - weight*blur)/(1-weight)
+
+        
 ## features
     def Gaussian_Blur_4D(self, sigma):
         G = dask_image.ndfilters.gaussian_filter(self.data, mode='nearest', sigma = sigma)
@@ -243,7 +260,8 @@ class image_filter:
                 
     def prepare(self):   
          
-         
+         if self.use_unsharp:
+             self.preprocess_with_unsharp_mask()
          self.Gaussian_4D_stack()
          self.diff_Gaussian('4D')
          self.Gradients()
