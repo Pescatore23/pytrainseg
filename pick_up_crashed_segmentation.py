@@ -57,7 +57,7 @@ elif host[:4] == 'hpc7': # experiment with the wood data on the big ESRF cluster
     temppath = '/tmp/robert'
     training_path = '/home/esrf/rofische/data_robert/Tomcat_2'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
-    memlim = '750GB'
+    memlim = '350GB' #'750GB'
 else:
     print('host '+host+' currently not supported')
     
@@ -76,7 +76,7 @@ os.chdir(cwd)
 ######## need to be consitent with original jupyter notebook
 sample = 'R_m7_33_200_1_II'
 prefix = '2025-05-07_git_sha_ebc58e6' #for classifier filepath
-dim1 = 56 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
+dim1 = 32 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
 #################
 
 # feature_names_to_use = ['Gaussian_4D_Blur_0.0',
