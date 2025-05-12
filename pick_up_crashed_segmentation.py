@@ -24,9 +24,8 @@ import warnings
 warnings.filterwarnings('ignore')
 import json
 
-scheduler_dict = json.load(open('/home/esrf/rofische/scheduler.json','r'))
-scheduler_address = scheduler_dict['address']
-
+rahome = '/das/home/fische_r'
+ESRFhome = '/home/esrf/rofische'
 
 from dask import config as cfg
 # cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat-fail/856, maybe this helps: https://www.youtube.com/watch?v=vF2VItVU5zg?
@@ -48,19 +47,24 @@ if host == 'mpc2959.psi.ch':
     # memlim = '840GB'
     memlim = '440GB'
     # memlim = '920GB'
+    home = '/mpc/homes/fische_r'
 elif host[:3] == 'ra-':
     temppath = '/das/home/fische_r/interlaces/Tomcat_2/tmp'
     training_path = '/das/home/fische_r/interlaces/Tomcat_2'
     pytrainpath = '/das/home/fische_r/lib/pytrainseg'
     memlim = '160GB'  # also fine on the small nodes, you can differentiate more if you want
+    home = rahome
 elif host[:4] == 'hpc7': # experiment with the wood data on the big ESRF cluster node
     temppath = '/tmp/robert'
     training_path = '/home/esrf/rofische/data_robert/Tomcat_2'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
     memlim = '350GB' #'750GB'
+    home = ESRFhome 
 else:
     print('host '+host+' currently not supported')
     
+scheduler_dict = json.load(open(os.path.join(home, 'scheduler.json'),'r'))
+scheduler_address = scheduler_dict['address']
 # get the ML functions, TODO: make a library once it works/is in a stable state
 
 
