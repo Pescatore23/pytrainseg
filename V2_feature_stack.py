@@ -84,7 +84,7 @@ class image_filter:
         im = self.data
         weight = self.weight_unsharp
         sigma = self.sigma_unsharp
-        blur = Gaussian_Blur_4D(im, sigma)
+        blur = dask_image.ndfilters.gaussian_filter(im, mode='nearest', sigma = sigma)
         self.data = (im - weight*blur)/(1-weight)
 
         
