@@ -58,7 +58,7 @@ elif host[:4] == 'hpc7': # experiment with the wood data on the big ESRF cluster
     temppath = '/tmp/robert'
     training_path = '/home/esrf/rofische/data_robert/Tomcat_2'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
-    memlim = '350GB' #'750GB'
+    memlim = '750GB'
     home = ESRFhome 
 else:
     print('host '+host+' currently not supported')
@@ -305,6 +305,7 @@ for filename in os.listdir(piecepath):
     i = int(filename.split('_')[2])
     j = int(filename.split('_')[4])
     ### not sure if this switch cases are necessary
+    print(filename)
     seg = pickle.load(open(os.path.join(piecepath, filename),'rb'))
     if i < imax-1 and j < jmax-1:
         segs[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:] = seg
