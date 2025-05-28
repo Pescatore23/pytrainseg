@@ -58,7 +58,7 @@ elif host[:4] == 'hpc7': # experiment with the wood data on the big ESRF cluster
     temppath = '/tmp/robert'
     training_path = '/home/esrf/rofische/data_robert/Tomcat_2'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
-    memlim = '350GB' #'750GB'
+    memlim = '750GB'
     home = ESRFhome 
 else:
     print('host '+host+' currently not supported')
@@ -78,9 +78,9 @@ os.chdir(cwd)
 
 ######## parse some arguments
 ######## need to be consitent with original jupyter notebook
-sample = 'R_m7_33_200_1_II'
-prefix = '2025-05-07_git_sha_ebc58e6' #for classifier filepath
-dim1 = 32 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
+sample = 'R_m4_33_050_2'
+prefix = '2025-05-27_git_sha_1712925' #for classifier filepath
+dim1 = 36 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
 #################
 
 # feature_names_to_use = ['Gaussian_4D_Blur_0.0',
@@ -162,11 +162,11 @@ def reboot_client(client, dashboard_address=':35000', memory_limit = memlim, n_w
 #client, cluster = boot_client()
 client = boot_client()
 
-imagepath = os.path.join(training_path, '01_'+sample+'_cropped.nc')
+imagepath = os.path.join(training_path, '01_'+sample+'_cropped_filtered.nc')
 file = h5py.File(imagepath)
 
 chunk_space = dim1 # potential for optmisation by matching chunksize with planned image filter kernels and file structure on disk for fast data streaming
-chunks = (chunk_space,chunk_space,chunk_space,len(file['time']))
+chunks = (chunk_space,chunk_space,chunk_space,len(file['timestep']))
 da = dask.array.from_array(file['image_data'], chunks= chunks)
 
 IF = image_filter(sigmas = [0,1,3,6]) 
@@ -305,6 +305,7 @@ for filename in os.listdir(piecepath):
     i = int(filename.split('_')[2])
     j = int(filename.split('_')[4])
     ### not sure if this switch cases are necessary
+    print(filename)
     seg = pickle.load(open(os.path.join(piecepath, filename),'rb'))
     if i < imax-1 and j < jmax-1:
         segs[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:] = seg

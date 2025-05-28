@@ -5,6 +5,7 @@ Spyder Editor
 This is a temporary script file.
 
 TODO: store ML settings and parameters somewhere as metadata
+TODO: use Laplacian Filter instead of Hessian matrix https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_laplace.html
 
 """
 
@@ -84,7 +85,7 @@ class image_filter:
         im = self.data
         weight = self.weight_unsharp
         sigma = self.sigma_unsharp
-        blur = Gaussian_Blur_4D(im, sigma)
+        blur = dask_image.ndfilters.gaussian_filter(im, mode='nearest', sigma = sigma)
         self.data = (im - weight*blur)/(1-weight)
 
         
