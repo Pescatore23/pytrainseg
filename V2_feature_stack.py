@@ -78,7 +78,7 @@ class image_filter:
         self.computed = False
         self.verbose = False
     
-    def preprocess_with_unsharp_mask(self):
+    def preprocess_with_unsharp_mask(self): #allowed, but not recommended, avoidable calculation overhead
         #ImageJ definition
         # https://imagej.net/ij/developer/source/ij/plugin/filter/UnsharpMask.java.html
         im = self.data
