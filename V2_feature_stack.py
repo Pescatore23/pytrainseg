@@ -5,6 +5,7 @@ Spyder Editor
 This is a temporary script file.
 
 TODO: store ML settings and parameters somewhere as metadata
+TODO: use Laplacian Filter instead of Hessian matrix https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_laplace.html
 
 """
 
