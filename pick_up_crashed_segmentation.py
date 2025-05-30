@@ -54,7 +54,7 @@ elif host[:3] == 'ra-':
     pytrainpath = '/das/home/fische_r/lib/pytrainseg'
     memlim = '160GB'  # also fine on the small nodes, you can differentiate more if you want
     home = rahome
-elif host[:4] == 'hpc7': # experiment with the wood data on the big ESRF cluster node
+elif host[:3] == 'hpc': # 
     temppath = '/tmp/robert'
     training_path = '/home/esrf/rofische/data_robert/Tomcat_2'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
@@ -80,7 +80,7 @@ os.chdir(cwd)
 ######## need to be consitent with original jupyter notebook
 sample = 'R_m4_33_050_2'
 prefix = '2025-05-27_git_sha_1712925' #for classifier filepath
-dim1 = 36 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
+dim1 = 24 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
 #################
 
 # feature_names_to_use = ['Gaussian_4D_Blur_0.0',
@@ -196,6 +196,7 @@ IF.combined_feature_names = list(IF.feature_names) + list(IF.feature_names_time_
 TS.combined_feature_names = IF.combined_feature_names
 
 clf = pickle.load(open(os.path.join(training_path, prefix+'_clf.p'),'rb'))
+clf.n_jobs = 64
 feat = TS.feat_data['feature_stack']
 feat_idp = TS.feat_data['feature_stack_time_independent']
 
