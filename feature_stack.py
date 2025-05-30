@@ -41,6 +41,7 @@ class image_filter:
                  sigma_unsharp = 1,
                  weight_unsharp = 0.6,
                  preprocess_with_unsharp_mask = False
+                 use_laplace = True
                  ):
         if sigma_for_ref not in sigmas:
             sigmas.append(sigma_for_ref)
@@ -62,6 +63,9 @@ class image_filter:
         self.loc_features = False
         # wether to calculate image derivates for raw image (rather useless because of high noise, set as above)
         self.sigma_0_derivatives = False
+
+        #wether to use discrete Laplace filter for image curvatures
+        self.use_laplace = use_laplace
         
         # set up dicts and lists to feed dask graph
         # not sure if this is clever, does dask understand that this data is reused?
@@ -202,6 +206,22 @@ class image_filter:
             
             self.feature_names = self.feature_names + gradnames + hessnames
             self.calculated_features = self.calculated_features+gradients+H_elems
+
+    # consider 3D and time Laplace (time probably not very useful)
+    def Laplace4D(self, sigma):
+        L = dask_image.ndfilters.gaussian_laplace(self.data, mode='nearest', sigma = sigma)
+        
+        self.feature_names.append('Laplace_4D_'+f'{sigma:.1f}')
+        self.calculated_features.append(L)
+
+    def Laplace_3D(self, sigma):      
+        sigmas = np.ones(self.data.ndim)*sigma
+        sigmas[-1] = 0   # potenital option: weak time sigma
+        L = dask_image.ndfilters.gaussian_laplace(self.data, mode='nearest', sigma = sigmas)
+        
+        self.feature_names.append('Laplace_3D_'+f'{sigma:.1f}')
+        self.calculated_features.append(L)
+        
             
     def pixel_coordinates(self):
         #create 3 arrays with the pixel coordinates
@@ -239,11 +259,12 @@ class image_filter:
         flag = True
         for sigma in self.sigmas:
             if np.abs(sigma-0)<0.1:
-                if flag:
-                    flag = False
-                    # self.Gaussian_space_dict['original'] = self.data
-                    sig = 0
-                    self.Gaussian_Blur_space(sig)
+                continue #sigma 0 duplicate to 4D Gaussian
+                # if flag:
+                #     flag = False
+                #     # self.Gaussian_space_dict['original'] = self.data
+                #     sig = 0
+                #     self.Gaussian_Blur_space(sig)
             else:
                 self.Gaussian_Blur_space(sigma)
                 
@@ -251,13 +272,38 @@ class image_filter:
         flag = True
         for sigma in self.sigmas:
             if np.abs(sigma-0)<0.1:
+                continue #sigma 0 duplicate to 4D Gaussian
+                # if flag:
+                #     flag = False
+                #     # self.Gaussian_time_dict['original'] = self.data
+                #     sig = 0
+                #     self.Gaussian_Blur_time(sig)
+            else:
+                self.Gaussian_Blur_time(sigma)
+
+    def Laplace4D_stack(self):
+        flag = True
+        for sigma in self.sigmas:
+            if np.abs(sigma-0)<0.1:
                 if flag:
                     flag = False
                     # self.Gaussian_time_dict['original'] = self.data
                     sig = 0
-                    self.Gaussian_Blur_time(sig)
+                    self.Laplace4D(sig)
             else:
-                self.Gaussian_Blur_time(sigma)
+                self.Laplace4D(sigma)
+
+    def Laplace3D_stack(self):
+        flag = True
+        for sigma in self.sigmas:
+            if np.abs(sigma-0)<0.1:
+                if flag:
+                    flag = False
+                    # self.Gaussian_time_dict['original'] = self.data
+                    sig = 0
+                    self.Laplace3D(sig)
+            else:
+                self.Laplace3D(sigma)
                 
     def prepare(self):   
          
@@ -266,7 +312,11 @@ class image_filter:
          self.Gaussian_4D_stack()
          self.diff_Gaussian('4D')
          self.Gradients()
-         self.Hessian()
+         if not self.use_laplace:
+             self.Hessian() #removed current implementation in favor of laplace filter, however, offers some addtional potentially useful features like max curvatore in any dimension
+         else:
+             self.Laplace4D_stack() # potentially more efficient and effective alternative to Hessian to exploit image curvature
+             self.Laplace3D_stack()
          self.Gaussian_time_stack()
          self.diff_Gaussian('time')
          self.Gaussian_space_stack()
@@ -353,11 +403,11 @@ class image_filter:
         self.feature_selection_time_idependent = ids_independent
         self.stack_has_been_reduced = True
         if self.verbose:
-            print('Considered dynamic features')
+            print('Considered dynamic features:')
             for name in self.feature_names_reduced:
                 print(name)
             print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-            print('Considered static features')
+            print('Considered static features:')
             for name in self.feature_names_reduced_time_independent:
                 print(name)
                 
