@@ -70,8 +70,8 @@ scheduler_address = scheduler_dict['address']
 
 cwd = os.getcwd()
 os.chdir(pytrainpath)
-from V2_feature_stack import image_filter
-from V2_training import training
+from feature_stack import image_filter
+from training import training
 
 pytrain_git_sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
 os.chdir(cwd)
