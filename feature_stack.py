@@ -40,7 +40,7 @@ class image_filter:
                  ignored_features = None,
                  sigma_unsharp = 1,
                  weight_unsharp = 0.6,
-                 preprocess_with_unsharp_mask = False
+                 preprocess_with_unsharp_mask = False,
                  use_laplace = True
                  ):
         if sigma_for_ref not in sigmas:
@@ -208,7 +208,7 @@ class image_filter:
             self.calculated_features = self.calculated_features+gradients+H_elems
 
     # consider 3D and time Laplace (time probably not very useful)
-    def Laplace4D(self, sigma):
+    def Laplace_4D(self, sigma):
         L = dask_image.ndfilters.gaussian_laplace(self.data, mode='nearest', sigma = sigma)
         
         self.feature_names.append('Laplace_4D_'+f'{sigma:.1f}')
@@ -289,9 +289,9 @@ class image_filter:
                     flag = False
                     # self.Gaussian_time_dict['original'] = self.data
                     sig = 0
-                    self.Laplace4D(sig)
+                    self.Laplace_4D(sig)
             else:
-                self.Laplace4D(sigma)
+                self.Laplace_4D(sigma)
 
     def Laplace3D_stack(self):
         flag = True
@@ -301,9 +301,9 @@ class image_filter:
                     flag = False
                     # self.Gaussian_time_dict['original'] = self.data
                     sig = 0
-                    self.Laplace3D(sig)
+                    self.Laplace_3D(sig)
             else:
-                self.Laplace3D(sigma)
+                self.Laplace_3D(sigma)
                 
     def prepare(self):   
          
