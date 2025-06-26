@@ -249,7 +249,7 @@ class training:
             print('training with existing label images')
             flag = True
             for label_name in labelnames[first_set:]:
-                if (label_name in self.training_dict.keys() or label_name[11:] in self.training_dict.keys()) and not redo: 
+                if (label_name in self.training_dict.keys() or label_name[12:-4] in self.training_dict.keys()) and not redo: 
                     print(label_name+' already done')
                     continue
                 print(label_name)
