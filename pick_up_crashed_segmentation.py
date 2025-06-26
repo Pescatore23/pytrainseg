@@ -58,7 +58,7 @@ elif host[:3] == 'hpc': #
     temppath = '/tmp/robert'
     training_path = '/home/esrf/rofische/data_ihma664/PROCESSED_DATA/TOMCAT/Tomcat_2'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
-    memlim = '700GB'
+    memlim = '780GB'
     home = ESRFhome 
 else:
     print('host '+host+' currently not supported')
@@ -80,7 +80,7 @@ os.chdir(cwd)
 ######## need to be consitent with original jupyter notebook
 sample = 'R_m4_33_050_2'
 prefix = '2025-06-26_git_sha_59a9df3' #for classifier filepath
-dim1 = 64 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
+dim1 = 52 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
 #################
 
 # feature_names_to_use = ['Gaussian_4D_Blur_0.0',
