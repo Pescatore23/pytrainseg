@@ -28,7 +28,7 @@ Cheers,
 
 Robert Fischer
 
-robert.fischer@psi.ch
+robert.fischer@esrf.fr
 
 ## Reference
 
