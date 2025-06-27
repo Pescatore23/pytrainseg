@@ -191,6 +191,10 @@ class image_filter:
             G = self.Gaussian_4D_dict[key]
             gradients = dask.array.gradient(G)
             self.Gradient_dict[key] = gradients
+
+            gradnames = ['Gradient_sigma_'+key+'_'+str(ax0) for ax0 in axes]
+            self.feature_names = self.feature_names + gradnames
+            self.calculated_features = self.calculated_features+gradients
             
     def Hessian(self):
         # TODO: add max of all dimensions
@@ -204,8 +208,8 @@ class image_filter:
             elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
             hessnames = [''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])]) for elm in elems ]
             
-            self.feature_names = self.feature_names + gradnames + hessnames
-            self.calculated_features = self.calculated_features+gradients+H_elems
+            self.feature_names = self.feature_names + hessnames
+            self.calculated_features = self.calculated_features+H_elems
 
     # consider 3D and time Laplace (time probably not very useful)
     def Laplace_4D(self, sigma):
