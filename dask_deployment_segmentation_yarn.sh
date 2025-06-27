@@ -20,4 +20,8 @@ dask scheduler --scheduler-file ~/scheduler_yarn.json  &
 	sleep 5
 	dask worker --nworkers 2 --memory-limit 780GB --scheduler-file ~/scheduler_yarn.json &
 		sleep 5
-		python /home/esrf/rofische/lib/pytrainseg/pick_up_crashed_segmentation.py
+		timeout 11h python /home/esrf/rofische/lib/pytrainseg/pick_up_crashed_segmentation.py
+		if [[ $? == 124 ]]; then 
+		  echo resubmit
+		  sbatch dask_deployment_segmentation_yarn.sh
+		fi
