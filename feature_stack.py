@@ -191,7 +191,7 @@ class image_filter:
             G = self.Gaussian_4D_dict[key]
             gradients = dask.array.gradient(G)
             self.Gradient_dict[key] = gradients
-
+            axes = range(self.data.ndim)
             gradnames = ['Gradient_sigma_'+key+'_'+str(ax0) for ax0 in axes]
             self.feature_names = self.feature_names + gradnames
             self.calculated_features = self.calculated_features+gradients
