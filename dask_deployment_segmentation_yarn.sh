@@ -14,9 +14,13 @@ conda activate base
 
 dask scheduler --scheduler-file ~/scheduler_yarn.json  &
 	sleep 10
+	echo an der Spindel gestochen
 	dask worker --nworkers 2 --memory-limit 780GB --scheduler-file ~/scheduler_yarn.json &
 		sleep 10
-		timeout 11h python /home/esrf/rofische/lib/pytrainseg/pick_up_yarn_segmentation.py
+		echo Dornröschen wieder aufgewacht
+		#timeout 11h python /home/esrf/rofische/lib/python_playground/test_dask_script.py
+		echo Rapunzel gekämmt
+		timeout 11h python /home/esrf/rofische/lib/pytrainseg/pick_up_yarn_segmentation_test.py
 #		timeout 11h python /home/esrf/rofische/lib/python_playground/test_dask_script.py
 		if [[ $? == 124 ]]; then 
 		  echo resubmit

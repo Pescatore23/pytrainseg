@@ -20,13 +20,11 @@ print('Schatz vergraben')
 ESRFhome = '/home/esrf/rofische'
 
 #from dask import config as cfg
-# cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat-fail/856, maybe this helps: https://www.youtube.com/watch?v=vF2VItVU5zg?
-#         'distributed.scheduler.transition-log-length': 100, #potential workaround for ballooning scheduler memory https://baumgartner.io/posts/how-to-reduce-memory-usage-of-dask-scheduler/
+# cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat->#         'distributed.scheduler.transition-log-length': 100, #potential workaround for ballooning scheduler memory https://baumgartner.io/posts/how-to-reduce-memory-usage-of-dask-scheduler/
 #          'distributed.scheduler.events-log-length': 100
 #         }) seems to be outdate
 
-#cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat-fail/856, maybe this helps: https://www.youtube.com/watch?v=vF2VItVU5zg?
- #       'distributed.admin.low-level-log-length': 100 #potential workaround for ballooning scheduler memory https://baumgartner.io/posts/how-to-reduce-memory-usage-of-dask-scheduler/
+#cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat-f> #       'distributed.admin.low-level-log-length': 100 #potential workaround for ballooning scheduler memory https://baumgartner.io/posts/how-to-reduce-memory-usage-of-dask-scheduler/
   #      }) # still relevant ?
 
 #paths
@@ -54,7 +52,7 @@ elif host[:3] == 'hpc': #
     home = ESRFhome
 else:
     print('host '+host+' currently not supported')
-    
+
 scheduler_dict = json.load(open(os.path.join(home, 'scheduler_yarn.json'),'r'))
 scheduler_address = scheduler_dict['address']
 # get the ML functions, TODO: make a library once it works/is in a stable state
@@ -69,78 +67,15 @@ pytrain_git_sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'
 os.chdir(cwd)
 
 print('Spaghetti aufgesetzt')
-######## parse some arguments
-######## need to be consitent with original jupyter notebook
+
 sample = 'R_m4_33_050_2'
 prefix = '2025-06-28_git_sha_22b5278' #for classifier filepath
-dim1 = 36 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
-#################
-
-# feature_names_to_use = ['Gaussian_4D_Blur_0.0',
- # 'Gaussian_4D_Blur_1.0',
- # 'Gaussian_4D_Blur_6.0',
- # 'diff_of_gauss_4D_6.0_0.0',
- # 'diff_of_gauss_4D_6.0_1.0',
- # 'Gradient_sigma_1.0_0',
- # 'Gradient_sigma_1.0_1',
- # 'Gradient_sigma_1.0_3',
- # 'hessian_sigma_1.0_00',
- # 'hessian_sigma_1.0_01',
- # 'hessian_sigma_1.0_11',
- # 'Gradient_sigma_3.0_3',
- # 'hessian_sigma_3.0_00',
- # 'hessian_sigma_3.0_01',
- # 'hessian_sigma_3.0_02',
- # 'hessian_sigma_3.0_03',
- # 'hessian_sigma_3.0_11',
- # 'hessian_sigma_3.0_33',
- # 'Gradient_sigma_6.0_0',
- # 'Gradient_sigma_6.0_1',
- # 'Gradient_sigma_6.0_2',
- # 'Gradient_sigma_6.0_3',
- # 'hessian_sigma_6.0_01',
- # 'hessian_sigma_6.0_03',
- # 'hessian_sigma_6.0_11',
- # 'hessian_sigma_6.0_12',
- # 'hessian_sigma_6.0_13',
- # 'hessian_sigma_6.0_22',
- # 'hessian_sigma_6.0_23',
- # 'hessian_sigma_6.0_33',
- # 'Gradient_sigma_2.0_0',
- # 'Gradient_sigma_2.0_3',
- # 'hessian_sigma_2.0_00',
- # 'hessian_sigma_2.0_01',
- # 'hessian_sigma_2.0_02',
- # 'hessian_sigma_2.0_11',
- # 'hessian_sigma_2.0_13',
- # 'Gaussian_time_0.0',
- # 'Gaussian_time_1.0',
- # 'Gaussian_time_6.0',
- # 'Gaussian_time_2.0',
- # 'Gaussian_space_0.0',
- # 'Gaussian_space_6.0',
- # 'diff_of_gauss_space_3.0_0.0',
- # 'diff_of_gauss_space_6.0_0.0',
- # 'diff_of_gauss_space_2.0_0.0',
- # 'diff_of_gauss_space_3.0_1.0',
- # 'diff_of_gauss_space_6.0_1.0',
- # 'diff_of_gauss_space_2.0_1.0',
- # 'diff_of_gauss_space_2.0_3.0',
- # 'diff_temp_min_Gauss_2.0',
- # 'diff_to_first_',
- # 'full_temp_min_Gauss_2.0',
- # 'first_',
- # 'last_']
-
-#############
-
-
+dim1 = 36
 
 dask.config.config['temporary-directory'] = temppath
 def boot_client(dashboard_address=':35000', memory_limit = memlim, n_workers=2, scheduler_address = scheduler_address): # 2 workers appears to be the optimum, will still distribute over the full machine
     # tempfolder = temppath  #a big SSD is a major adavantage to allow spill to disk and still be efficient. large dataset might crash with too small SSD or be slow with normal HDD
-    #cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers, silence_logs=logging.ERROR) #settings optimised for mpc2959, play around if needed, if you know nothing else is using RAM then you can almost go to the limit
-    #client = Client(cluster) #don't show warnings, too many seem to block execution
+    #cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers, silence_logs=logging.ERROR) #settings optimised for mpc2959, play around if needed, if you kn>    #client = Client(cluster) #don't show warnings, too many seem to block execution
     client = Client(scheduler_address)
     print('Dashboard at '+client.dashboard_link)
     return client #, cluster
@@ -162,7 +97,7 @@ chunk_space = dim1 # potential for optmisation by matching chunksize with planne
 chunks = (chunk_space,chunk_space,chunk_space,len(file['timestep']))
 da = dask.array.from_array(file['image_data'], chunks= chunks)
 
-IF = image_filter(sigmas = [0,1,3,6]) 
+IF = image_filter(sigmas = [0,1,3,6])
 IF.data = da
 shp = da.shape
 shp_raw = shp
@@ -190,6 +125,7 @@ TS.combined_feature_names = IF.combined_feature_names
 
 clf = pickle.load(open(os.path.join(training_path, prefix+'_clf.p'),'rb'))
 clf.n_jobs = 64
+
 feat = TS.feat_data['feature_stack']
 feat_idp = TS.feat_data['feature_stack_time_independent']
 
@@ -213,14 +149,14 @@ def get_the_client_back(client):
         client.restart()
     except:
         client = reboot_client(client)
-    if not len(client.cluster.workers)>1:   
+    if not len(client.cluster.workers)>1:
         client = reboot_client(client)
     return client
 
 # shp = feat.shape[:-1]
 shp = shp_raw
 
-# aspect ratio 
+# aspect ratio
 dimsize = np.sort(shp[:-1] )
 aspect = round_up(dimsize[-1]/dimsize[-2])
 
@@ -229,7 +165,6 @@ aspect = round_up(dimsize[-1]/dimsize[-2])
 dim2 = int(round_up(aspect*dim1, 0))
 jmax = int(round_up(dimsize[-2]/dim1, 0))
 imax = int(round_up(dimsize[-1]/dim2, 0))
-
 piecepath = os.path.join(os.path.join(training_path_sample, 'segmentation_pieces'))
 
 restart_i = 0
@@ -244,7 +179,6 @@ if os.path.exists(piecepath):
         ij_mat[i,j] = True
         restart_i = int(np.min(np.argmin(ij_mat, axis=0)))
         restart_j = int(np.max(np.argmin(ij_mat, axis=1)))
-
 
 print('restarting at:',restart_i, restart_j)
 
@@ -268,8 +202,8 @@ for i in range(restart_i,imax):
         if os.path.exists(tmpfile):
             print(i,j,'already exists, skipping')
             continue
-        part = feat[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:,:] 
-        part_idp = feat_idp[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:]  
+        part = feat[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:,:]
+        part_idp = feat_idp[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:]
         if 0 in part.shape:
             print('hit the edge (one dimension 0), ignore')
             continue
@@ -277,26 +211,22 @@ for i in range(restart_i,imax):
         #client = get_the_client_back(client)
         part_idp = calculate_part(part_idp)
         #client = get_the_client_back(client)
-        
+
         part_idp = np.stack([part_idp]*shp[-1], axis=-2)[:,:,:,0,:,:] #expand in time, a bit ugly, could maybe more elegant
         part = np.concatenate([part, part_idp], axis = -1)
         del part_idp # drop the time independent part, is this garbage collected?
 
         shp_orig = part.shape
-        num_feat = part.shape[-1]  
+        num_feat = part.shape[-1]
         part = part.reshape(-1,num_feat)
-
         seg = clf.predict(part).astype(np.uint8)
 
         # put segs together when all calculated
         seg = seg.reshape(shp_orig[:4])
-
         pickle.dump(seg, open(tmpfile, 'wb'))
-        
-segs = np.zeros(shp_raw, dtype=np.uint8)
 
-for filename in os.listdir(piecepath):
-    i = int(filename.split('_')[2])
+segs = np.zeros(shp_raw, dtype=np.uint8)
+for filename in os.listdir(piecepath):                                                                                                                                                                               i = int(filename.split('_')[2])
     j = int(filename.split('_')[4])
     ### not sure if this switch cases are necessary
     print(filename)
@@ -309,9 +239,9 @@ for filename in os.listdir(piecepath):
         segs[i*dim1:(i+1)*dim1,:,j*dim2:,:] =  seg
     else:
         segs[i*dim1:,:,j*dim2:,:] = seg
-        
-        
-# TODO: add metadat and time data from original dataset   
+
+
+# TODO: add metadat and time data from original dataset
 shp = segs.shape
 segdata = xr.Dataset({'segmented': (['x','y','z','timestep'], segs),},
                                coords = {'x': np.arange(shp[0]),
