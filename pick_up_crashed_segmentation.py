@@ -40,30 +40,18 @@ cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask doe
 #paths
 host = socket.gethostname()
 print(host)
-if host == 'mpc2959.psi.ch':
-    temppath = '/mnt/SSD/fische_r/tmp'
-    training_path =  '/mnt/SSD/fische_r/Tomcat_2/'
-    pytrainpath = '/mpc/homes/fische_r/lib/pytrainseg'
-    # memlim = '840GB'
-    memlim = '440GB'
-    # memlim = '920GB'
-    home = '/mpc/homes/fische_r'
-elif host[:3] == 'ra-':
-    temppath = '/das/home/fische_r/interlaces/Tomcat_2/tmp'
-    training_path = '/das/home/fische_r/interlaces/Tomcat_2'
-    pytrainpath = '/das/home/fische_r/lib/pytrainseg'
-    memlim = '160GB'  # also fine on the small nodes, you can differentiate more if you want
-    home = rahome
-elif host[:3] == 'hpc': # 
+
+if host[:3] == 'hpc': # 
     temppath = '/tmp/robert'
-    training_path = '/home/esrf/rofische/data_ihma664/PROCESSED_DATA/TOMCAT/Tomcat_2'
+    training_path = '/home/esrf/rofische/data_ihma664/PROCESSED_DATA/TOMCAT/wood'
     pytrainpath = '/home/esrf/rofische/lib/pytrainseg'
     memlim = '780GB'
     home = ESRFhome 
 else:
     print('host '+host+' currently not supported')
     
-scheduler_dict = json.load(open(os.path.join(home, 'scheduler_yarn.json'),'r'))
+
+scheduler_dict = json.load(open(os.path.join(home, 'scheduler_wood.json'),'r'))
 scheduler_address = scheduler_dict['address']
 # get the ML functions, TODO: make a library once it works/is in a stable state
 
@@ -78,7 +66,7 @@ os.chdir(cwd)
 
 ######## parse some arguments
 ######## need to be consitent with original jupyter notebook
-sample = 'R_m4_33_050_2'
+sample = 'T6_BS_05_wetting_4D_fast'
 prefix = '' #for classifier filepath
 dim1 = 36 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
 #################
@@ -162,7 +150,7 @@ def reboot_client(client, dashboard_address=':35000', memory_limit = memlim, n_w
 #client, cluster = boot_client()
 client = boot_client()
 
-imagepath = os.path.join(training_path, '01_'+sample+'_cropped_filtered.nc')
+imagepath = os.path.join(training_path, '00_'+sample+'_cropped_4D_filtered_fixed.nc')
 file = h5py.File(imagepath)
 
 chunk_space = dim1 # potential for optmisation by matching chunksize with planned image filter kernels and file structure on disk for fast data streaming
