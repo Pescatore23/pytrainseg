@@ -8,6 +8,7 @@ TODO: make nice, currently just copy of the relevant jupyter cells without comme
 """
 
 # modules
+print('script started')
 import os
 import xarray as xr
 import numpy as np
@@ -23,19 +24,19 @@ import logging
 import warnings
 warnings.filterwarnings('ignore')
 import json
-
+print('modules loaded')
 
 ESRFhome = '/home/esrf/rofische'
 
-from dask import config as cfg
+#from dask import config as cfg
 # cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat-fail/856, maybe this helps: https://www.youtube.com/watch?v=vF2VItVU5zg?
 #         'distributed.scheduler.transition-log-length': 100, #potential workaround for ballooning scheduler memory https://baumgartner.io/posts/how-to-reduce-memory-usage-of-dask-scheduler/
 #          'distributed.scheduler.events-log-length': 100
 #         }) seems to be outdate
 
-cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat-fail/856, maybe this helps: https://www.youtube.com/watch?v=vF2VItVU5zg?
-        'distributed.admin.low-level-log-length': 100 #potential workaround for ballooning scheduler memory https://baumgartner.io/posts/how-to-reduce-memory-usage-of-dask-scheduler/
-        }) # still relevant ?
+#cfg.set({'distributed.scheduler.worker-ttl': None, # Workaround so that dask does not kill workers while they are busy fetching data: https://dask.discourse.group/t/dask-workers-killed-because-of-heartbeat-fail/856, maybe this helps: https://www.youtube.com/watch?v=vF2VItVU5zg?
+ #       'distributed.admin.low-level-log-length': 100 #potential workaround for ballooning scheduler memory https://baumgartner.io/posts/how-to-reduce-memory-usage-of-dask-scheduler/
+  #      }) # still relevant ?
 
 #paths
 host = socket.gethostname()
