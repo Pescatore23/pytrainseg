@@ -67,7 +67,7 @@ os.chdir(cwd)
 ######## parse some arguments
 ######## need to be consitent with original jupyter notebook
 sample = 'T6_BS_05_wetting_4D_fast'
-prefix = '' #for classifier filepath
+prefix = '2025-06-28_git_sha_08f3df6' #for classifier filepath
 dim1 = 36 #better use multiple of chunk size !?  <-- tune this parameter to minimize imax, jmax and the size of the result
 #################
 
