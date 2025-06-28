@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=segmentation_yarn
+#SBATCH --job-name=seg_yarn
 #SBATCH --time=12:00:00 
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=140
