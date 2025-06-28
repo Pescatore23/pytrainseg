@@ -8,18 +8,15 @@
 
 # Activate conda env
 export PYTHONPATH=''
-#eval "$(/store/empa/em13/fischer/lib/miniconda3/bin/conda shell.bash hook)"
-#conda activate membrane_fingering
 eval "$(/home/esrf/rofische/conda_x86/miniforge3/condabin/conda shell.bash hook)"
 conda activate base
 
 cd ~/lib/pytrainseg
 git checkout yarn
-cd
 dask scheduler --scheduler-file ~/scheduler_yarn.json  &
-	sleep 5
+	sleep 10
 	dask worker --nworkers 2 --memory-limit 780GB --scheduler-file ~/scheduler_yarn.json &
-		sleep 5
+		sleep 10
 		timeout 11h python /home/esrf/rofische/lib/pytrainseg/pick_up_crashed_segmentation.py
 		if [[ $? == 124 ]]; then 
 		  echo resubmit
