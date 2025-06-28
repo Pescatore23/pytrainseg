@@ -226,7 +226,8 @@ for i in range(restart_i,imax):
         pickle.dump(seg, open(tmpfile, 'wb'))
 
 segs = np.zeros(shp_raw, dtype=np.uint8)
-for filename in os.listdir(piecepath):                                                                                                                                                                               i = int(filename.split('_')[2])
+for filename in os.listdir(piecepath):
+    i = int(filename.split('_')[2])
     j = int(filename.split('_')[4])
     ### not sure if this switch cases are necessary
     print(filename)
