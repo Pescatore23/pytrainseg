@@ -23,5 +23,5 @@ dask scheduler --scheduler-file ~/scheduler_yarn.json  &
 #		timeout 11h python /home/esrf/rofische/lib/python_playground/test_dask_script.py
 		if [[ $? == 124 ]]; then 
 		  echo resubmit
-		  sbatch dask_deployment_segmentation_yarn.sh
+		  sbatch /home/esrf/rofische/lib/pytrainseg/dask_deployment_segmentation_yarn.sh
 		fi
