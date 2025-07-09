@@ -273,7 +273,7 @@ for i in range(restart_i,imax):
         part_idp = calculate_part(part_idp)
         #client = get_the_client_back(client)
         
-        part_idp = np.stack([part_idp]*shp[-1], axis=-2)[:,:,:,0,:,:] #expand in time, a bit ugly, could maybe more elegant
+        part_idp = np.stack([part_idp]*shp[-1], axis=-2)[:,:,:,0,:,:] #expand in time, a bit ugly, could maybe be more elegant
         part = np.concatenate([part, part_idp], axis = -1)
         del part_idp # drop the time independent part, is this garbage collected?
 
@@ -296,14 +296,15 @@ for filename in os.listdir(piecepath):
     ### not sure if this switch cases are necessary
     print(filename)
     seg = pickle.load(open(os.path.join(piecepath, filename),'rb'))
-    if i < imax-1 and j < jmax-1:
-        segs[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:] = seg
-    elif not i < imax-1 and j < jmax-1:
-        segs[i*dim1:,:,j*dim2:(j+1)*dim2,:] =  seg
-    elif not j < jmax-1 and i < imax-1:
-        segs[i*dim1:(i+1)*dim1,:,j*dim2:,:] =  seg
-    else:
-        segs[i*dim1:,:,j*dim2:,:] = seg
+    segs[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:] = seg
+    # if i < imax-1 and j < jmax-1:
+        # segs[i*dim1:(i+1)*dim1,:,j*dim2:(j+1)*dim2,:] = seg
+    # elif not i < imax-1 and j < jmax-1:
+        # segs[i*dim1:,:,j*dim2:(j+1)*dim2,:] =  seg
+    # elif not j < jmax-1 and i < imax-1:
+        # segs[i*dim1:(i+1)*dim1,:,j*dim2:,:] =  seg
+    # else:
+        # segs[i*dim1:,:,j*dim2:,:] = seg
         
         
 # TODO: add metadat and time data from original dataset   
