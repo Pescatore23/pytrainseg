@@ -41,7 +41,8 @@ class image_filter:
                  sigma_unsharp = 1,
                  weight_unsharp = 0.6,
                  preprocess_with_unsharp_mask = False,
-                 use_laplace = True
+                 use_laplace = True,
+                 edge_mode = 'nearest'
                  ):
         if sigma_for_ref not in sigmas:
             sigmas.append(sigma_for_ref)
@@ -49,6 +50,7 @@ class image_filter:
         self.ignored_features = ignored_features
         self.sigma_for_ref = sigma_for_ref
         self.sigmas = sigmas   
+        self.edge_mode = edge_mode
         
         #preprocessing parameters for unsharp mask (do this in a seperate step? lowpass filtering definetly has to happen outside on GPUs)
         self.weight_unsharp = weight_unsharp
@@ -89,13 +91,13 @@ class image_filter:
         im = self.data
         weight = self.weight_unsharp
         sigma = self.sigma_unsharp
-        blur = dask_image.ndfilters.gaussian_filter(im, mode='nearest', sigma = sigma)
+        blur = dask_image.ndfilters.gaussian_filter(im, mode= self.edge_mode, sigma = sigma)
         self.data = (im - weight*blur)/(1-weight)
 
         
 ## features
     def Gaussian_Blur_4D(self, sigma):
-        G = dask_image.ndfilters.gaussian_filter(self.data, mode='nearest', sigma = sigma)
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigma)
                 
         self.feature_names.append('Gaussian_4D_Blur_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
@@ -104,7 +106,7 @@ class image_filter:
     def Gaussian_Blur_space(self, sigma):      
         sigmas = np.ones(self.data.ndim)*sigma
         sigmas[-1] = 0   # potenital option: weak time sigma
-        G = dask_image.ndfilters.gaussian_filter(self.data, mode='nearest', sigma = sigmas)
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigmas)
         
         self.feature_names.append('Gaussian_space_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
@@ -113,7 +115,7 @@ class image_filter:
     def Gaussian_Blur_time(self, sigma):      
         sigmas = np.ones(self.data.ndim)*sigma
         sigmas[:-1] = 0 # potenital option: weak space sigma
-        G = dask_image.ndfilters.gaussian_filter(self.data, mode='nearest', sigma = sigmas)
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigmas)
         
         self.feature_names.append('Gaussian_time_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
@@ -197,24 +199,24 @@ class image_filter:
             self.feature_names = self.feature_names + gradnames
             self.calculated_features = self.calculated_features+gradients
             
-    def Hessian(self):
-        # TODO: add max of all dimensions
-        for key in self.Gradient_dict.keys():
-            if key == '0.0' and not self.sigma_0_derivatives: continue
-            axes = range(self.data.ndim)
-            gradients = self.Gradient_dict[key]
-            H_elems = [dask.array.gradient(gradients[ax0], axis=ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
+    # def Hessian(self):
+    #     # TODO: add max of all dimensions
+    #     for key in self.Gradient_dict.keys():
+    #         if key == '0.0' and not self.sigma_0_derivatives: continue
+    #         axes = range(self.data.ndim)
+    #         gradients = self.Gradient_dict[key]
+    #         H_elems = [dask.array.gradient(gradients[ax0], axis=ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
             
-            gradnames = ['Gradient_sigma_'+key+'_'+str(ax0) for ax0 in axes]
-            elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
-            hessnames = [''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])]) for elm in elems ]
+    #         gradnames = ['Gradient_sigma_'+key+'_'+str(ax0) for ax0 in axes]
+    #         elems = [(ax0,ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)]
+    #         hessnames = [''.join(['hessian_sigma_',key,'_',str(elm[0]),str(elm[1])]) for elm in elems ]
             
-            self.feature_names = self.feature_names + hessnames
-            self.calculated_features = self.calculated_features+H_elems
+    #         self.feature_names = self.feature_names + hessnames
+    #         self.calculated_features = self.calculated_features+H_elems
 
     # consider 3D and time Laplace (time probably not very useful)
     def Laplace_4D(self, sigma):
-        L = dask_image.ndfilters.gaussian_laplace(self.data, mode='nearest', sigma = sigma)
+        L = dask_image.ndfilters.gaussian_laplace(self.data, mode=self.edge_mode, sigma = sigma)
         
         self.feature_names.append('Laplace_4D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
@@ -222,27 +224,27 @@ class image_filter:
     def Laplace_3D(self, sigma):      
         sigmas = np.ones(self.data.ndim)*sigma
         sigmas[-1] = 0   # potenital option: weak time sigma
-        L = dask_image.ndfilters.gaussian_laplace(self.data, mode='nearest', sigma = sigmas)
+        L = dask_image.ndfilters.gaussian_laplace(self.data, mode=self.edge_mode, sigma = sigmas)
         
         self.feature_names.append('Laplace_3D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
         
             
-    def pixel_coordinates(self):
-        #create 3 arrays with the pixel coordinates
-        da = self.data
+    # def pixel_coordinates(self):
+    #     #create 3 arrays with the pixel coordinates
+    #     da = self.data
         
-        loc_x = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[0])[:,None, None]
-        self.feature_names_time_independent.append('loc_'+'x')
-        self.calculated_features_time_independent.append(loc_x)
+    #     loc_x = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[0])[:,None, None]
+    #     self.feature_names_time_independent.append('loc_'+'x')
+    #     self.calculated_features_time_independent.append(loc_x)
         
-        loc_y = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[1])[None,:, None]
-        self.feature_names_time_independent.append('loc_'+'y')
-        self.calculated_features_time_independent.append(loc_y)
+    #     loc_y = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[1])[None,:, None]
+    #     self.feature_names_time_independent.append('loc_'+'y')
+    #     self.calculated_features_time_independent.append(loc_y)
         
-        loc_z = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[2])[None, None, :]
-        self.feature_names_time_independent.append('loc_'+'z')
-        self.calculated_features_time_independent.append(loc_z)
+    #     loc_z = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[2])[None, None, :]
+    #     self.feature_names_time_independent.append('loc_'+'z')
+    #     self.calculated_features_time_independent.append(loc_z)
         
 # stack featrues
     def Gaussian_4D_stack(self):
@@ -261,7 +263,7 @@ class image_filter:
                 self.Gaussian_Blur_4D(sigma)
                 
     def Gaussian_space_stack(self):
-        flag = True
+        # flag = True
         for sigma in self.sigmas:
             if np.abs(sigma-0)<0.1:
                 continue #sigma 0 duplicate to 4D Gaussian
@@ -274,7 +276,7 @@ class image_filter:
                 self.Gaussian_Blur_space(sigma)
                 
     def Gaussian_time_stack(self):
-        flag = True
+        # flag = True
         for sigma in self.sigmas:
             if np.abs(sigma-0)<0.1:
                 continue #sigma 0 duplicate to 4D Gaussian
