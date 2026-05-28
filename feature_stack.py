@@ -186,6 +186,7 @@ class image_filter:
         self.calculated_features.append(Gmindiff)
         
     def Gradients(self):
+        # TODO: use Gaussian filter with order argument to get the derivatives
         for key in self.Gaussian_4D_dict:
             if key == '0.0' and not self.sigma_0_derivatives: continue
             G = self.Gaussian_4D_dict[key]
