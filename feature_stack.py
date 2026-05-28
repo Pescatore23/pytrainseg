@@ -91,7 +91,7 @@ class image_filter:
         im = self.data
         weight = self.weight_unsharp
         sigma = self.sigma_unsharp
-        blur = dask_image.ndfilters.gaussian_filter(im, mode= self.edge_mode, sigma = sigma)
+        blur = dask_image.ndfilters.gaussian_filter(im, sigma = sigma, mode= self.edge_mode)
         self.data = (im - weight*blur)/(1-weight)
 
         
@@ -106,7 +106,7 @@ class image_filter:
     def Gaussian_Blur_space(self, sigma):      
         sigmas = np.ones(self.data.ndim)*sigma
         sigmas[-1] = 0   # potenital option: weak time sigma
-        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigmas)
+        G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode)
         
         self.feature_names.append('Gaussian_space_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
@@ -115,7 +115,7 @@ class image_filter:
     def Gaussian_Blur_time(self, sigma):      
         sigmas = np.ones(self.data.ndim)*sigma
         sigmas[:-1] = 0 # potenital option: weak space sigma
-        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigmas)
+        G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode)
         
         self.feature_names.append('Gaussian_time_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
@@ -216,7 +216,7 @@ class image_filter:
 
     # consider 3D and time Laplace (time probably not very useful)
     def Laplace_4D(self, sigma):
-        L = dask_image.ndfilters.gaussian_laplace(self.data, mode=self.edge_mode, sigma = sigma)
+        L = dask_image.ndfilters.gaussian_laplace(self.data, sigma = sigma, mode=self.edge_mode)
         
         self.feature_names.append('Laplace_4D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
@@ -224,7 +224,7 @@ class image_filter:
     def Laplace_3D(self, sigma):      
         sigmas = np.ones(self.data.ndim)*sigma
         sigmas[-1] = 0   # potenital option: weak time sigma
-        L = dask_image.ndfilters.gaussian_laplace(self.data, mode=self.edge_mode, sigma = sigmas)
+        L = dask_image.ndfilters.gaussian_laplace(self.data, sigma = sigmas, mode=self.edge_mode)
         
         self.feature_names.append('Laplace_3D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
