@@ -94,17 +94,24 @@ class image_filter:
         blur = dask_image.ndfilters.gaussian_filter(im, sigma = sigma, mode= self.edge_mode)
         self.data = (im - weight*blur)/(1-weight)
 
-        
+    def check_sigma_for_dask_overlap(self, sigma):
+        #reduce sigma for short axis (dangerous, but typically only affects time)
+        sigmas = np.ones(self.data.ndim)*sigma
+        for i in range(len(sigmas)):
+            if sigmas[i]*4 >= self.shp[i]:
+                sigmas[i] = self.shp[i]/4 - .1
+                print('sigma of axis ', str(i), 'reduced to', f'{sigmas[i]:.1f}', 'to accomodate dask map overlap')
+        return sigmas
 ## features
     def Gaussian_Blur_4D(self, sigma):
-        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigma)
-                
+        sigmas = self.check_sigma_for_dask_overlap(sigma)
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigmas)        
         self.feature_names.append('Gaussian_4D_Blur_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
         self.Gaussian_4D_dict[f'{sigma:.1f}'] = G
         
     def Gaussian_Blur_space(self, sigma):      
-        sigmas = np.ones(self.data.ndim)*sigma
+        sigmas = self.check_sigma_for_dask_overlap(sigma)
         sigmas[-1] = 0   # potenital option: weak time sigma
         G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode)
         
@@ -113,7 +120,7 @@ class image_filter:
         self.Gaussian_space_dict[f'{sigma:.1f}'] = G
         
     def Gaussian_Blur_time(self, sigma):      
-        sigmas = np.ones(self.data.ndim)*sigma
+        sigmas = self.check_sigma_for_dask_overlap(sigma)
         sigmas[:-1] = 0 # potenital option: weak space sigma
         G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode)
         
@@ -216,13 +223,14 @@ class image_filter:
 
     # consider 3D and time Laplace (time probably not very useful)
     def Laplace_4D(self, sigma):
-        L = dask_image.ndfilters.gaussian_laplace(self.data, sigma = sigma, mode=self.edge_mode)
+        sigmas = self.check_sigma_for_dask_overlap(sigma)
+        L = dask_image.ndfilters.gaussian_laplace(self.data, sigma = sigmas, mode=self.edge_mode)
         
         self.feature_names.append('Laplace_4D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
 
     def Laplace_3D(self, sigma):      
-        sigmas = np.ones(self.data.ndim)*sigma
+        sigmas = self.check_sigma_for_dask_overlap(sigma)
         sigmas[-1] = 0   # potenital option: weak time sigma
         L = dask_image.ndfilters.gaussian_laplace(self.data, sigma = sigmas, mode=self.edge_mode)
         
@@ -278,6 +286,9 @@ class image_filter:
     def Gaussian_time_stack(self):
         # flag = True
         for sigma in self.sigmas:
+            if sigma*4 >= self.shp[-1]: 
+                print('time sigma', str(sigma), 'ignored because too big for map_overlap')
+                continue
             if np.abs(sigma-0)<0.1:
                 continue #sigma 0 duplicate to 4D Gaussian
                 # if flag:
