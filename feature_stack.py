@@ -5,7 +5,7 @@ Spyder Editor
 This is a temporary script file.
 
 TODO: store ML settings and parameters somewhere as metadata
-TODO: use Laplacian Filter instead of Hessian matrix https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_laplace.html
+TODO: structure tensor, exploit max of time gradient
 
 """
 
@@ -237,7 +237,11 @@ class image_filter:
         self.feature_names.append('Laplace_3D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
         
-            
+    def structure_tensor(self, sigma, size):
+        ST = 1
+        self.feature_names.append('structure_3D_'+f'{sigma:.1f}'+'_'+f'{size:.1f}')
+        self.calculated_features.append(ST)
+    
     # def pixel_coordinates(self):
     #     #create 3 arrays with the pixel coordinates
     #     da = self.data
