@@ -237,10 +237,11 @@ class image_filter:
         self.feature_names.append('Laplace_3D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
         
-    def structure_tensor(self, sigma, size):
-        ST = 1
-        self.feature_names.append('structure_3D_'+f'{sigma:.1f}'+'_'+f'{size:.1f}')
-        self.calculated_features.append(ST)
+    def structure_tensor(self, sigma, rho):
+        volume = self.data
+        
+        # self.feature_names.append('structure_3D_'+f'{sigma:.1f}'+'_'+f'{size:.1f}')
+        # self.calculated_features.append(ST)
     
     # def pixel_coordinates(self):
     #     #create 3 arrays with the pixel coordinates
