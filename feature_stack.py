@@ -356,7 +356,8 @@ class image_filter:
                     self.structure_tensor_eigenvalues_3D(sigma, rho)
                 
     def prepare(self):   
-         
+
+         self.shp = self.data.shape
          if self.use_unsharp:
              self.preprocess_with_unsharp_mask()
          self.Gaussian_4D_stack()

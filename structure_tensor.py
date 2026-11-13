@@ -104,7 +104,7 @@ def eig_special_3d_robert(S):
     q = det/2
     
     #phi
-    phi = lib.atan(lib.sqrt(p**3-q**2)/q)/3
+    phi = lib.arctan(lib.sqrt(p**3-q**2)/q)/3
     
     #eigenvalues
     psqrt = lib.sqrt(p)
