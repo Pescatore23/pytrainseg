@@ -50,7 +50,7 @@ def structure_tensor(volume, sigma, rho, truncate = 4):
     S.append(lib.multiply(Vy, Vz))
     
     for i in range(6):
-        S[i] = dask_image.ndfilters.gaussian_filter(S[i], rho, mode="nearest", truncate=truncate)
+        S[i] = dask_image.ndfilters.gaussian_filter(S[i], [rho, rho, rho, 0], mode="nearest", truncate=truncate)
         
     S = lib.stack(S)
         
