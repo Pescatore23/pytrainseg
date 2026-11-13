@@ -19,6 +19,8 @@ import dask.array
 from itertools import combinations_with_replacement, combinations
 import xarray as xr
 
+from structure_tensor import calculate_spatial_structure_eigenvalues
+
 def ball_4d(sig):
     bnd = np.zeros((sig*2+1,sig*2+1,sig*2+1,sig*2+1), dtype = bool)
     bnd[sig,sig,sig,sig] = True
@@ -170,29 +172,43 @@ class image_filter:
     def time_stats(self):
         DA = self.data
         mean = DA.mean(axis=-1)
-        minimum = DA.min(axis=-1)
+        # minimum = DA.min(axis=-1)
+        # std = DA.std(axis=-1)     # std seems redundant compared to var and more expensive
+        var = DA.var(axis=-1)
         # median sounds good on paper, but is an expensive calculation with little benefit over mean
+        
+        # options: var, cov
     
-        diff_min = DA - minimum[...,None]
+        # diff_min = DA - minimum[...,None]
         # TODO: consider diffs to gaussian filtered mimimum, and diffs of gaussians
         
         G = self.Gaussian_4D_dict[f'{self.sigma_for_ref:.1f}']
         Gmin = G.min(axis=-1)
+        Gmax = G.max(axis=-1)
         Gmindiff = G - Gmin[...,None]
+        Gmaxdiff = Gmax[...,None] - G
         
-        self.calculated_features.append(diff_min)
-        self.feature_names.append('diff_to_min_')
+        # self.calculated_features.append(diff_min)
+        # self.feature_names.append('diff_to_min_')
         
         self.feature_names_time_independent.append('full_temp_mean_')
         self.calculated_features_time_independent.append(mean)
-        self.feature_names_time_independent.append('full_temp_min_')
-        self.calculated_features_time_independent.append(minimum)
+        # self.feature_names_time_independent.append('full_temp_min_')
+        # self.calculated_features_time_independent.append(minimum)
+        # self.feature_names_time_independent.append('full_temp_std_')
+        # self.calculated_features_time_independent.append(std)
+        self.feature_names_time_independent.append('full_temp_var_')
+        self.calculated_features_time_independent.append(var)
         
         self.feature_names_time_independent.append(''.join(['full_temp_min_Gauss_',f'{self.sigma_for_ref:.1f}']))
         self.calculated_features_time_independent.append(Gmin)
+        self.feature_names_time_independent.append(''.join(['full_temp_max_Gauss_',f'{self.sigma_for_ref:.1f}']))
+        self.calculated_features_time_independent.append(Gmax)
         
         self.feature_names.append(''.join(['diff_temp_min_Gauss_',f'{self.sigma_for_ref:.1f}']))
         self.calculated_features.append(Gmindiff)
+        self.feature_names.append(''.join(['diff_temp_max_Gauss_',f'{self.sigma_for_ref:.1f}']))
+        self.calculated_features.append(Gmaxdiff)
         
     def Gradients(self):
         # TODO: use Gaussian filter with order argument to get the derivatives
@@ -237,11 +253,16 @@ class image_filter:
         self.feature_names.append('Laplace_3D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
         
-    def structure_tensor(self, sigma, rho):
-        volume = self.data
+    def structure_tensor_eigenvalues_3D(self, sigma, rho):
+        # sigma and rho larger than 3 pointless
+        # what about time structure?
+        valmax, valmin = calculate_spatial_structure_eigenvalues(self.data, sigma, rho)
         
-        # self.feature_names.append('structure_3D_'+f'{sigma:.1f}'+'_'+f'{size:.1f}')
-        # self.calculated_features.append(ST)
+        self.feature_names.append('Structure_3D_max_'+f'{sigma:.1f}'+'_'+f'{rho:.1f}')
+        self.calculated_features.append(valmax)
+        self.feature_names.append('Structure_3D_min_'+f'{sigma:.1f}'+'_'+f'{rho:.1f}')
+        self.calculated_features.append(valmin)
+        
     
     # def pixel_coordinates(self):
     #     #create 3 arrays with the pixel coordinates
@@ -327,6 +348,12 @@ class image_filter:
                     self.Laplace_3D(sig)
             else:
                 self.Laplace_3D(sigma)
+    
+    def Structure3D_stack(self):
+        for sigma in self.sigmas:
+            if sigma>=1 and sigma<=3: #only usefule range for structure tensor
+                for rho in [1,3]:
+                    self.structure_tensor_eigenvalues_3D(sigma, rho)
                 
     def prepare(self):   
          
@@ -344,6 +371,7 @@ class image_filter:
          self.diff_Gaussian('time')
          self.Gaussian_space_stack()
          self.diff_Gaussian('space')
+         self.Structure3D_stack()
          # self.rank_filter_stack() #dask_image might provide rank-like filters soon you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
          self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
          self.diff_to_first_and_last(self.take_means, self.num_means) 

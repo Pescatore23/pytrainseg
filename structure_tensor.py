@@ -18,9 +18,9 @@ def structure_tensor(volume, sigma, rho, truncate = 4):
     volume : dask array
         3D dask array containing the grayscale volume for a time step
     sigma : float or int
-        pre-filter sigma
+        pre-filter sigma (smoothing)
     rho : float or int
-        structure range = post-ftiler sigma
+        structure range (integration) = post-ftiler sigma
 
     Returns
     -------
@@ -29,12 +29,17 @@ def structure_tensor(volume, sigma, rho, truncate = 4):
 
     '''
     
-    # Computing derivatives (scipy implementation truncates filter at 4 sigma).
-    Vx = dask_image.ndfilters.gaussian_filter(volume, sigma, order=(0, 0, 1), mode="nearest", truncate=truncate)  # type: ignore
-    Vy = dask_image.ndfilters.gaussian_filter(volume, sigma, order=(0, 1, 0), mode="nearest", truncate=truncate)  # type: ignore
-    Vz = dask_image.ndfilters.gaussian_filter(volume, sigma, order=(1, 0, 0), mode="nearest", truncate=truncate)  # type: ignore  
     
-    S = [] # append to list instead of pre-allocate memory, dask takes care of thos
+    # Computing derivatives (scipy implementation truncates filter at 4 sigma)
+    # TODO: truncate more for shorter dimensions
+    
+    Vx = dask_image.ndfilters.gaussian_filter(volume, sigma, order=(0, 0, 1, 0), mode="nearest", truncate=truncate)  # type: ignore
+    Vy = dask_image.ndfilters.gaussian_filter(volume, sigma, order=(0, 1, 0, 0), mode="nearest", truncate=truncate)  # type: ignore
+    Vz = dask_image.ndfilters.gaussian_filter(volume, sigma, order=(1, 0, 0, 0), mode="nearest", truncate=truncate)  # type: ignore  
+    
+    S = [] # append to list instead of pre-allocate memory, dask takes care of those
+    
+    
     
     # Integrating elements of structure tensor (scipy uses sequence of 1D).
     S.append(lib.multiply(Vx, Vx))
@@ -120,4 +125,10 @@ def eig_extremes(val):
     valmax = val.max(axis=0)
     valmin = val.min(axis=0)
     
+    return valmax, valmin
+
+def calculate_spatial_structure_eigenvalues(volume, sigma, rho):
+    S = structure_tensor(volume, sigma, rho)
+    val = eig_special_3d_robert(S)
+    valmax, valmin = eig_extremes(val)
     return valmax, valmin
