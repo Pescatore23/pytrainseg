@@ -53,14 +53,23 @@ def structure_tensor(volume, sigma, rho, truncate = 4):
 
 # def eig_special_3d(S):
 def eig_special_3d_robert(S):   
-#     #RF: the original code uses quite a few memory allocations incompitble with dask
-#     # therfore the eigenvalue extraction is built directly from https://dl.acm.org/doi/epdf/10.1145/355578.366316
-#     # testing shows that the built-in numpy (and dask methods) are faster for a single matrix, but full volume much much faster with QIM method
-    
-    #TODO: maybe only use half of the symmetric matrix as the original code does
+    '''
+
+    Parameters
+    ----------
+    S : Structure tensor
+        6xnD array containing the lower half of the structure tensor of each pixel
+
+    Returns
+    -------
+    val : float
+        3 structure tensor eigenvalues of each pixel in arbitrary order in the same shape as S
+
+    '''
+
     
     shp = S.shape
-    S = S.reshape(6,-1)
+    S = S.reshape(6,-1).astype(lib.float32) # make sure it is float to avoid bit overflow!
     S0 = S[0]
     S1 = S[1]
     S2 = S[2]
@@ -102,10 +111,13 @@ def eig_special_3d_robert(S):
     v3 = m - lib.sqrt(p)*(cos - lib.sqrt(3)*sin)
     
     val = lib.array([v1,v2,v3])
+    
+    val = val.reshape(val.shape[:-1] + shp[1:])
+    
+    return val
+
+def eig_extremes(val):
     valmax = val.max(axis=0)
     valmin = val.min(axis=0)
-    
-    valmax = valmax.reshape(valmax.shape[:-1] + shp[1:])
-    valmin = valmin.reshape(valmin.shape[:-1] + shp[1:])
     
     return valmax, valmin
