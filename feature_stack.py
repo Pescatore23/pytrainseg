@@ -2,10 +2,9 @@
 """
 Spyder Editor
 
-This is a temporary script file.
-
 TODO: store ML settings and parameters somewhere as metadata
-TODO: structure tensor, exploit max of time gradient
+TODO: xploit max of time gradient
+TODO: maybe potential by splitting the feature stack in dask and reassembly later in memory with numpy
 
 """
 
