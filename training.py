@@ -2,6 +2,8 @@
 """
 Created on Mon Mar 31 14:31:06 2025
 
+TODO: clean and maybe move juypter cells into this script
+
 @author: ROFISCHE
 """
 
