@@ -467,14 +467,16 @@ class image_filter:
     #             print(name)
                 
                 
-    def make_feature_xarray(self, use_reduced=True):
-        if use_reduced and self.stack_has_been_reduced:
-            shp = self.reduced_stack.shape
-        
+    def make_feature_xarray(self, use_reduced=True): 
+        shp = self.shp
         coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 't': np.arange(shp[3])}
+
+        self.data_xarray = xr.Dataset({'image_data': (['x','y','z','t'], self.data)}, coords = coords) 
+        
         self.feature_xarray_listed = xr.Dataset({}, coords = coords) 
         for (fname, fstack) in zip(self.feature_names,self.calculated_features):
             self.feature_xarray_listed[fname] = (['x','y','z','t'], fstack)
+            
         self.feature_xarray_listed_time_independent = xr.Dataset({}, coords = coords)   
         for (fname, fstack) in zip(self.feature_names_time_independent, self.calculated_features_time_independent):
             self.feature_xarray_listed_time_independent[fname] = (['x','y','z'], fstack)

@@ -124,36 +124,22 @@ class training:
         ts = np.random.choice(timesteps)
         print('You could try ',test_dim,'=',str(p1),' at time step ',str(ts))
         
-    def load_training_set(self, c1, p1, c2, p2):
+    def load_training_image(self, c1, p1, c2, p2):
 
-        #TODO: only read the raw image from data
-        
-        # select correct feature stack for slice
-        feat_data = self.feat_data
+        data = self.data_xarray
         if c1 == 'x':
-            im = feat_data['image_data'].sel(x = p1, time = p2)
-            feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
+            im = data['image_data'].sel(x = p1, t = p2)
         if c1 == 'y':
-            im = feat_data['image_data'].sel(y = p1, time = p2)
-            feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2)#.data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0)
+            im = data['image_data'].sel(y = p1, t = p2)
         if c1 == 'z':
-            im = feat_data['image_data'].sel(z = p1, time = p2)
-            feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2)#.data
-            feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0)
+            im = data['image_data'].sel(z = p1, t = p2)
             
         self.current_coordinates = [c1,p1,c2,p2]
-        self.current_feat_stack = feat_stack
-        self.feat_stack_t_idp = feat_stack_t_idp
-        self.current_result = np.zeros((feat_stack.shape[0],feat_stack.shape[1]), dtype=np.uint8)
-        
-        # select the raw image as default and calculate it
-        
+       
         if type(im) is not np.ndarray:
             fut = self.client.scatter(im)
             fut = fut.result()
-            fut = fut.compute(optimize_graph=True)
+            fut = fut.compute(optimize_graph=False)
             im = fut.data
             self.client.restart(wait_for_workers=False)
             if not len(self.client.cluster.workers)>1:
