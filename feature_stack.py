@@ -87,14 +87,14 @@ class image_filter:
         self.computed = False
         self.verbose = False
     
-    def preprocess_with_unsharp_mask(self): #allowed, but not recommended, avoidable calculation overhead
-        #ImageJ definition
-        # https://imagej.net/ij/developer/source/ij/plugin/filter/UnsharpMask.java.html
-        im = self.data
-        weight = self.weight_unsharp
-        sigma = self.sigma_unsharp
-        blur = dask_image.ndfilters.gaussian_filter(im, sigma = sigma, mode= self.edge_mode)
-        self.data = (im - weight*blur)/(1-weight)
+    # def preprocess_with_unsharp_mask(self): #allowed, but not recommended, avoidable calculation overhead
+    #     #ImageJ definition
+    #     # https://imagej.net/ij/developer/source/ij/plugin/filter/UnsharpMask.java.html
+    #     im = self.data
+    #     weight = self.weight_unsharp
+    #     sigma = self.sigma_unsharp
+    #     blur = dask_image.ndfilters.gaussian_filter(im, sigma = sigma, mode= self.edge_mode)
+    #     self.data = (im - weight*blur)/(1-weight)
 
     def check_sigma_for_dask_overlap(self, sigma):
         #reduce sigma for short axis (dangerous, but typically only affects time)
@@ -211,7 +211,7 @@ class image_filter:
         self.calculated_features.append(Gmaxdiff)
         
     def Gradients(self):
-        # TODO: use Gaussian filter with order argument to get the derivatives
+        # TODO: use Gaussian filter with order argument to get the derivatives, but is this really a better idea?
         for key in self.Gaussian_4D_dict:
             if key == '0.0' and not self.sigma_0_derivatives: continue
             G = self.Gaussian_4D_dict[key]
@@ -484,15 +484,17 @@ class image_filter:
             if use_reduced and not self.stack_has_been_reduced:
                 print('- reduced stack not calculated')
         
+        im_data = self.data
         
         coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'time_0': [0],
                   'feature': feature_names,
                   'feature_time_independent': feature_names_time_independent}
-
+        
         self.feature_xarray = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], feature_stack),
-                                  'feature_stack_time_independent': (['x','y','z','time_0', 'feature_time_independent'], feature_stack_time_independent)},
+                                          'feature_stack_time_independent': (['x','y','z','time_0', 'feature_time_independent'], feature_stack_time_independent),
+                                          'image_data': (['x','y','z','time'], im_data)},
                                      coords = coords
-                                                 )     
+                                                 )    
 
         
                 

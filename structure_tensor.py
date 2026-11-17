@@ -132,3 +132,35 @@ def calculate_spatial_structure_eigenvalues(volume, sigma, rho):
     val = eig_special_3d_robert(S)
     valmax, valmin = eig_extremes(val)
     return valmax, valmin
+
+def calculate_dominant_orientation(valmin, S, normalize=True):
+    #https://lab.compute.dtu.dk/QIM/tutorials/structuretensor
+    # need to calculate the eigenvector to the smallest eigenvalue
+    shp = S.shape
+    S = S.reshape(6,-1).astype(lib.float32) # make sure it is float to avoid bit overflow!
+    l = valmin.reshape(-1).astype(lib.float32) # eigenvalue
+    
+    u = S[4] * S[5] - (S[2] - l) * S[3]
+    v = S[3] * S[5] - (S[1] - l) * S[4]
+    w = S[3] * S[4] - (S[0] - l) * S[5]
+
+    vec = lib.array([u,v,w])
+
+     # Normalizing -- depends on number of vectors.
+    if normalize:
+        l = lib.einsum("ij,ij->j", vec, vec)
+        l = lib.sqrt(l)
+        vec /= l
+        r = 1
+
+    vec = vec.reshape(vec.shape[:-1] +shp[1:])
+
+    #orientation (spherical coordinates)
+    if not normalize:
+        r = lib.sqrt(u**2+v**2+w**2)
+    phi = lib.arctan(v/u)
+    theta = lib.arccos(w/r)
+    
+    vec_sph = lib.array([r,phi,theta])
+    
+    return vec, vec_sph
