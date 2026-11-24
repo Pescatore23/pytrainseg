@@ -105,11 +105,14 @@ class training:
         if training_path is None:
             print('no training path given, re-init with setting training_path')
         self.label_path = os.path.join(training_path, 'label_images')
+        self.feat_path = os.path.join(training_path, 'feature_stacks')
         self.training_dict = {}
         self.clf_method = clf_method
         if not os.path.exists(self.label_path):
-            os.mkdir(self.label_path)        
-        existing_sets = os.listdir(self.label_path)
+            os.mkdir(self.label_path)    
+        if not os.path.exists(self.feat_path):
+            os.mkdir(self.feat_path)    
+        existing_sets = os.listdir(self.feat_path)
         existing_sets.sort()
         if len(existing_sets)>0:
             print('There are existing training sets, run .train() if you want to use them:')
@@ -123,6 +126,18 @@ class training:
         p1 = np.random.choice(range(len(self.feat_data[test_dim])))
         ts = np.random.choice(timesteps)
         print('You could try ',test_dim,'=',str(p1),' at time step ',str(ts))
+
+    def get_current_feat_stack_path(self):
+        [c1,p1,c2,p2] = self.current_coordinates
+        slice_name = ''.join([c1,'_',str(p1),'_',c2,'_',str(p2),'_'])
+        featpath = os.path.join(self.feat_path, ''.join(['feature_stack_',slice_name,'.tif']))
+        return featpath
+
+    # def save_current_feat_stack(self, feat_stack):
+        
+    
+    # def load_current_feat_stack(self):
+        
         
     def load_training_image(self, c1, p1, c2, p2):
 
@@ -161,9 +176,16 @@ class training:
             print('existing label set loaded')
         else:
             truth = resultim.copy()
+
+        featpath = self.get_current_feat_stack_path()
+
+        if os.path.exists(featpath):
+            print('a feature stack exists. TODO: load it')
+        
         self.current_truth = truth
         self.current_truthpath = truthpath
         self.current_slice_name = slice_name
+        self.current_feat_path = featpath
         
     def train_slice(self):
         training_dict = self.training_dict
@@ -185,7 +207,7 @@ class training:
         # print(c1, p1, c2, p2)
         truth = io.imread(os.path.join(trainingpath, label_name))
         if np.any(truth>0):
-            
+            # TODO: use existing feature stacks and save newly calculated ones
             # temporary workaround, make general
             feat_data = self.feat_data
             if c1 == 'x':

@@ -5,6 +5,8 @@ Created on Thu Nov 12 11:04:45 2026
 structure tensor in dask
 adapted from https://github.com/Skielex/structure-tensor/blob/master/structure_tensor/st3d.py
 
+TODO: isntead of 4D dask stack, make a list of 3D
+
 @author: ROFISCHE
 """
 

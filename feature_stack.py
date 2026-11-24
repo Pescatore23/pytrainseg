@@ -374,7 +374,7 @@ class image_filter:
          self.diff_Gaussian('time')
          self.Gaussian_space_stack()
          self.diff_Gaussian('space')
-         self.Structure3D_stack()
+         #self.Structure3D_stack()  #structure tensor seems to take a long time, complex dask graph
          # self.rank_filter_stack() #dask_image might provide rank-like filters soon you have to load the entire raw data set for the dynamic part of this filter --> not so good for many time steps
          self.time_stats() #does something similar like the dynamic rank filter, however only one pixel in space
          self.diff_to_first_and_last(self.take_means, self.num_means) 
@@ -384,43 +384,43 @@ class image_filter:
          
          self.prepared = True 
         
-    # def stack_features(self):
-    #     if not self.prepared:
-    #         print('prepare first')
-    #     else:
-    #         self.feature_names = np.array(self.feature_names)
-    #         self.feature_names_time_independent = np.array(self.feature_names_time_independent)
-    #         self.stack_has_been_reduced = False
-    #         self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
-    #         self.feature_stack_time_independent = dask.array.stack(self.calculated_features_time_independent, axis=3)
-    #         shp = self.feature_stack_time_independent.shape
-    #         self.feature_stack_time_independent = self.feature_stack_time_independent.reshape(shp[0],shp[1],shp[2],1,shp[3])
+    def stack_features(self):
+        if not self.prepared:
+            print('prepare first')
+        else:
+            self.feature_names = np.array(self.feature_names)
+            self.feature_names_time_independent = np.array(self.feature_names_time_independent)
+            self.stack_has_been_reduced = False
+            self.feature_stack = dask.array.stack(self.calculated_features, axis = 4)
+            self.feature_stack_time_independent = dask.array.stack(self.calculated_features_time_independent, axis=3)
+            shp = self.feature_stack_time_independent.shape
+            self.feature_stack_time_independent = self.feature_stack_time_independent.reshape(shp[0],shp[1],shp[2],1,shp[3])
             
-    #     if self.ignored_features is not None:
-    #         ids_time = np.ones(len(self.feature_names), dtype=bool)
-    #         ids_independent = np.ones(len(self.feature_names_time_independent), dtype=bool)
-    #         for i in range(len(ids_time)):
-    #             if self.feature_names[i] in self.ignored_features:
-    #                 ids_time[i] = False      
-    #         for i in range(len(ids_independent)):
-    #             if self.feature_names_time_independent[i] in self.ignored_features:
-    #                 ids_independent[i] = False
-    #         self.reduce_feature_stack(ids_time, ids_independent, verbose=self.verbose)
+        if self.ignored_features is not None:
+            ids_time = np.ones(len(self.feature_names), dtype=bool)
+            ids_independent = np.ones(len(self.feature_names_time_independent), dtype=bool)
+            for i in range(len(ids_time)):
+                if self.feature_names[i] in self.ignored_features:
+                    ids_time[i] = False      
+            for i in range(len(ids_independent)):
+                if self.feature_names_time_independent[i] in self.ignored_features:
+                    ids_independent[i] = False
+            self.reduce_feature_stack(ids_time, ids_independent, verbose=self.verbose)
             
-    # def create_feature_ids(self, feature_names_to_use):
-    #     # time dependent features
-    #     ids_time = np.zeros(len(self.feature_names), dtype=bool)
-    #     for i in range(len(ids_time)):
-    #         if self.feature_names[i] in feature_names_to_use:
-    #             ids_time[i] = True
-    #     self.ids_time = ids_time
+    def create_feature_ids(self, feature_names_to_use):
+        # time dependent features
+        ids_time = np.zeros(len(self.feature_names), dtype=bool)
+        for i in range(len(ids_time)):
+            if self.feature_names[i] in feature_names_to_use:
+                ids_time[i] = True
+        self.ids_time = ids_time
         
-    #     # time in-dependent features
-    #     ids_independent = np.zeros(len(self.feature_names_time_independent), dtype=bool)
-    #     for i in range(len(ids_independent)):
-    #         if self.feature_names_time_independent[i] in feature_names_to_use:
-    #             ids_independent[i] = True
-    #     self.ids_independent = ids_independent
+        # time in-dependent features
+        ids_independent = np.zeros(len(self.feature_names_time_independent), dtype=bool)
+        for i in range(len(ids_independent)):
+            if self.feature_names_time_independent[i] in feature_names_to_use:
+                ids_independent[i] = True
+        self.ids_independent = ids_independent
         
             
             
@@ -481,38 +481,38 @@ class image_filter:
         for (fname, fstack) in zip(self.feature_names_time_independent, self.calculated_features_time_independent):
             self.feature_xarray_listed_time_independent[fname] = (['x','y','z'], fstack)
                 
-    # def make_xarray(self, use_reduced=True):
+    def make_xarray(self, use_reduced=True):
         
-    #     if use_reduced and self.stack_has_been_reduced:
-    #         shp = self.reduced_stack.shape
-    #         feature_names = self.feature_names_reduced
-    #         feature_names_time_independent = self.feature_names_reduced_time_independent
-    #         feature_stack = self.reduced_stack
-    #         feature_stack_time_independent = self.reduced_stack_time_independent
-    #         print('using reduced feature stack')
-    #     else:
-    #         shp = self.feature_stack.shape
-    #         feature_names = self.feature_names
-    #         feature_names_time_independent = self.feature_names_time_independent
-    #         feature_stack = self.feature_stack
-    #         feature_stack_time_independent = self.feature_stack_time_independent
-    #         print('using full feature stack because')
-    #         if not use_reduced:
-    #             print('- reduced stack not selected')
-    #         if use_reduced and not self.stack_has_been_reduced:
-    #             print('- reduced stack not calculated')
+        if use_reduced and self.stack_has_been_reduced:
+            shp = self.reduced_stack.shape
+            feature_names = self.feature_names_reduced
+            feature_names_time_independent = self.feature_names_reduced_time_independent
+            feature_stack = self.reduced_stack
+            feature_stack_time_independent = self.reduced_stack_time_independent
+            print('using reduced feature stack')
+        else:
+            shp = self.feature_stack.shape
+            feature_names = self.feature_names
+            feature_names_time_independent = self.feature_names_time_independent
+            feature_stack = self.feature_stack
+            feature_stack_time_independent = self.feature_stack_time_independent
+            print('using full feature stack because')
+            if not use_reduced:
+                print('- reduced stack not selected')
+            if use_reduced and not self.stack_has_been_reduced:
+                print('- reduced stack not calculated')
         
-    #     im_data = self.data
+        im_data = self.data
         
-    #     coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'time_0': [0],
-    #               'feature': feature_names,
-    #               'feature_time_independent': feature_names_time_independent}
+        coords = {'x': np.arange(shp[0]), 'y': np.arange(shp[1]), 'z': np.arange(shp[2]), 'time': np.arange(shp[3]), 'time_0': [0],
+                  'feature': feature_names,
+                  'feature_time_independent': feature_names_time_independent}
         
-    #     self.feature_xarray = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], feature_stack),
-    #                                       'feature_stack_time_independent': (['x','y','z','time_0', 'feature_time_independent'], feature_stack_time_independent),
-    #                                       'image_data': (['x','y','z','time'], im_data)},
-    #                                  coords = coords
-    #                                              )    
+        self.feature_xarray = xr.Dataset({'feature_stack': (['x','y','z','time', 'feature'], feature_stack),
+                                          'feature_stack_time_independent': (['x','y','z','time_0', 'feature_time_independent'], feature_stack_time_independent),
+                                          'image_data': (['x','y','z','time'], im_data)},
+                                     coords = coords
+                                                 )    
 
         
                 
