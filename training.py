@@ -14,26 +14,18 @@ import numpy as np
 import dask 
 import pickle
 # from dask.distributed import wait
-
 #the classifier
 from sklearn.ensemble import RandomForestClassifier
 from dask.distributed import Client, LocalCluster
 
 default_classifier = RandomForestClassifier(n_estimators = 300, n_jobs=-1, random_state = 42, max_features=None) 
 
-def reboot_client(client, dashboard_address=':35000', memory_limit = '400GB', n_workers=2):
-    client.shutdown()
-    cluster = LocalCluster(dashboard_address=dashboard_address, memory_limit = memory_limit, n_workers=n_workers)
-    client = Client(cluster)
-    return client
-
-
 def extract_training_data(truth, feat_stack, ids = None):
     #pixelwise training data
     phase1 = truth==1
     phase2 = truth==2
     phase3 = truth==4   
-    phase4 = truth==3 #3 and 4 are flipped for lagacy reasons and existing training data
+    phase4 = truth==3 #3 and 4 are flipped for legacy reasons and existing training data
     X1 = feat_stack[phase1]
     y1 = np.zeros(X1.shape[0])
     X2 = feat_stack[phase2]
@@ -78,12 +70,9 @@ def training_function(truth, feat_stack, training_dict, slice_name, clf):
         yall = training_dict[slices[0]][1]
         for i in range(1,len(slices)): #why was there 1, in range ? because first initiates the Xall, np.stack could be an alternative way
             Xall = np.concatenate([Xall, training_dict[slices[i]][0]])
-            yall = np.concatenate([yall, training_dict[slices[i]][1]])
-            
+            yall = np.concatenate([yall, training_dict[slices[i]][1]])    
     X,y = extract_training_data(truth, feat_stack)
-    
     print('training and classifying')
-    
     if flag:
         Xt = np.concatenate([Xall,X])
         yt = np.concatenate([yall,y])
@@ -120,8 +109,8 @@ class training:
                 print(training_set)
             
     def suggest_training_set(self):
-        dimensions = list(self.feat_data.coords.keys())[:3]
-        timesteps = self.feat_data.time.data
+        dimensions = list(self.data.coords.keys())[:3]
+        timesteps = self.data.t.data
         test_dim = np.random.choice(dimensions)
         p1 = np.random.choice(range(len(self.feat_data[test_dim])))
         ts = np.random.choice(timesteps)
@@ -133,13 +122,42 @@ class training:
         featpath = os.path.join(self.feat_path, ''.join(['feature_stack_',slice_name,'.tif']))
         return featpath
 
-    # def save_current_feat_stack(self, feat_stack):
-        
+    def save_current_feat_stack(self):
+        #TODO: save feature list, maybe save as .nc
+        io.imsave(self.current_feat_path, self.current_feat_stack_full.astype(np.float32))
+
+    def calculate_feat_stack(self, feat_stack):
+        if type(feat_stack) is not np.ndarray:
+            print('calculating feat stack, might take a while ...')
+            fut = self.client.scatter(feat_stack)
+            fut = fut.result()
+            fut = fut.compute()
+            feat_stack = fut.data
+            self.current_feat_stack_full = feat_stack
+            self.save_current_feat_stack
+            try:
+                self.client.restart()
+            except:
+    #            if not len(self.client.cluster.workers)>1:
+                self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
+        else:
+            print('feat stack was already in RAM')
+        return feat_stack
     
-    # def load_current_feat_stack(self):
+    def load_current_feat_stack(self):
+        self.current_feat_path = self.get_current_feat_stack_path()
+        feat_path = self.current_feat_path
+        if os.path.exists(feat_path):
+            #TODO: also check the feature list
+            feat_stack = io.imread(feat_path)
+            self.current_feat_stack_full = feat_stack
+            print('found', feat_path)
+            print('and added the feature stack as current_feat_stack_full')
+        else:
+            print('no feature stack found')
+            print('you will have to calculate it')    
         
-        
-    def load_training_image(self, c1, p1, c2, p2):
+    def load_training_image(self, c1, p1, c2, p2, load_unfiltered = True):
 
         data = self.data_xarray
         if c1 == 'x':
@@ -147,21 +165,18 @@ class training:
         if c1 == 'y':
             im = data['image_data'].sel(y = p1, t = p2)
         if c1 == 'z':
-            im = data['image_data'].sel(z = p1, t = p2)
-            
+            im = data['image_data'].sel(z = p1, t = p2) 
         self.current_coordinates = [c1,p1,c2,p2]
        
-        if type(im) is not np.ndarray:
+        if type(im) is not np.ndarray and load_unfiltered:
             fut = self.client.scatter(im)
             fut = fut.result()
             fut = fut.compute(optimize_graph=False)
             im = fut.data
             self.client.restart(wait_for_workers=False)
             if not len(self.client.cluster.workers)>1:
-                    self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
-        
+                    self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)             
         self.current_im = im
-        
         # make a scaled 8bit image for display on the canvas
         im8 = im-im.min()
         im8 = im8/im8.max()*255
@@ -177,15 +192,11 @@ class training:
         else:
             truth = resultim.copy()
 
-        featpath = self.get_current_feat_stack_path()
-
-        if os.path.exists(featpath):
-            print('a feature stack exists. TODO: load it')
-        
+        self.load_current_feat_stack()        
         self.current_truth = truth
+        self.current_result = resultim
         self.current_truthpath = truthpath
         self.current_slice_name = slice_name
-        self.current_feat_path = featpath
         
     def train_slice(self):
         training_dict = self.training_dict
@@ -200,63 +211,121 @@ class training:
         self.training_dict = training_dict #this necessary ? yes!
         self.clf = clf
         self.current_result = resultim
-        
-    def training_set_per_image(self, label_name, trainingpath, feat_data, lazy = False):
-        c1, p1, c2, p2 = extract_coords(label_name)
-        # print(label_name)
-        # print(c1, p1, c2, p2)
-        truth = io.imread(os.path.join(trainingpath, label_name))
-        if np.any(truth>0):
-            # TODO: use existing feature stacks and save newly calculated ones
-            # temporary workaround, make general
-            feat_data = self.feat_data
-            if c1 == 'x':
-                feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
-                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
-            if c1 == 'y':
-                feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2)#.data
-                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0)
-            if c1 == 'z':
-                feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2)#.data
-                feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0)
 
-            if type(feat_stack) is not np.ndarray:
-                    fut = self.client.scatter(feat_stack)
-                    fut = fut.result()
-                    fut = fut.compute()
-                    feat_stack = fut.data
-                    try:
-                        self.client.restart()
-                    except:
-#            if not len(self.client.cluster.workers)>1:
-     	                self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
-                    # TODO client reboot if workers can't return
-            if type(feat_stack_t_idp) is not np.ndarray:
-                    fut = self.client.scatter(feat_stack_t_idp)
-                    fut = fut.result()
-                    fut = fut.compute()
-                    feat_stack_t_idp = fut.data
-                    try:
-                        self.client.restart()
-#            if not len(self.client.cluster.workers)>1:
-                    except:
-                        self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
-                    
-            feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
-            
+    def select_feat_slice(TSarr,feat_name,c1,p1,c2,p2):
+        feat = TSarr[feat_name]
+        if c1 == 'x' and c2 == 'time':
+            feat = feat.sel(x = p1, t = p2)
+        elif c1 == 'y' and c2 == 'time':
+            feat = feat.sel(y = p1, t = p2)
+        elif c1 == 'z' and c2 == 'time':
+            feat = feat.sel(z = p1, t = p2)
+        return feat
+
+    def select_feat_slice_stat(TSarr,feat_name,c1,p1):
+        feat = TSarr[feat_name]
+        if c1 == 'x':
+            feat = feat.sel(x = p1)
+        elif c1 == 'y':
+            feat = feat.sel(y = p1)
+        elif c1 == 'z':
+            feat = feat.sel(z = p1)
+        return feat
+
+    def slice_feat_stack(self,c1,p1,c2,p2):
+        # TODO: check for existing feat stack and load it
+        ## mabye stack in dask and calculate then using dask? yes, because bottleneck appears to be reading from disk. performance is the same in both cases
+        #time dependent
+        feat_stack = []
+        for feat_name in self.feature_names:
+            feat = select_feat_slice(self.feature_xarray_listed,feat_name,c1,p1,c2,p2)
+            # feat = calculate_feature(feat)
+            feat_stack.append(feat) 
+        #time independent
+        # feat_stack_stat = []
+        for feat_name in self.feature_names_time_independent:
+            feat = select_feat_slice_stat(SELF.feature_xarray_listed_time_independent,feat_name,c1,p1)
+            # feat = calculate_feature(feat)
+            feat_stack.append(feat)
+        feat_stack = dask.array.stack(feat_stack, axis = -1)
+        # feat_stack = np.stack(feat_stack, axis = -1)
+        return feat_stack
+
+    def training_set_per_image(self, label_name, training_path):
+        c1, p1, c2, p2 = extract_coords(label_name)
+        self.load_training_image(c1, p1, c2, p2, load_unfiltered = False)
+        truth = self.current_truth
+        feat_stack = self.current_feat_stack_full
+        feat_stack = self.calculate_feat_stack(feat_stack)
+        if self.use_timesteps:
+            loc_t = p2*np.ones(feat_stack.shape[:2], dtype=feat_stack.dtype)
+            feat_stack = np.concatenate([feat_stack, loc_t[...,None]], axis=2)
+        
+        if np.any(truth>0):
             X, y = extract_training_data(truth, feat_stack)
             check_flag = True
             return X,y, check_flag
-        
+
         else:
             print('label image is empty')
             check_flag = False
             return 'no labels', 'y', check_flag
+        
+#     def training_set_per_image_old(self, label_name, trainingpath, feat_data, lazy = False):
+#         c1, p1, c2, p2 = extract_coords(label_name)
+#         # print(label_name)
+#         # print(c1, p1, c2, p2)
+#         truth = io.imread(os.path.join(trainingpath, label_name))
+#         if np.any(truth>0):
+#             # TODO: use existing feature stacks and save newly calculated ones
+#             # temporary workaround, make general
+#             feat_data = self.feat_data
+#             if c1 == 'x':
+#                 feat_stack = feat_data['feature_stack'].sel(x = p1, time = p2)
+#                 feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(x = p1, time_0 = 0)
+#             if c1 == 'y':
+#                 feat_stack = feat_data['feature_stack'].sel(y = p1, time = p2)#.data
+#                 feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(y = p1, time_0 = 0)
+#             if c1 == 'z':
+#                 feat_stack = feat_data['feature_stack'].sel(z = p1, time = p2)#.data
+#                 feat_stack_t_idp = feat_data['feature_stack_time_independent'].sel(z = p1, time_0 = 0)
+
+#             if type(feat_stack) is not np.ndarray:
+#                     fut = self.client.scatter(feat_stack)
+#                     fut = fut.result()
+#                     fut = fut.compute()
+#                     feat_stack = fut.data
+#                     try:
+#                         self.client.restart()
+#                     except:
+# #            if not len(self.client.cluster.workers)>1:
+#      	                self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
+#                     # TODO client reboot if workers can't return
+#             if type(feat_stack_t_idp) is not np.ndarray:
+#                     fut = self.client.scatter(feat_stack_t_idp)
+#                     fut = fut.result()
+#                     fut = fut.compute()
+#                     feat_stack_t_idp = fut.data
+#                     try:
+#                         self.client.restart()
+# #            if not len(self.client.cluster.workers)>1:
+#                     except:
+#                         self.client = reboot_client(self.client, memory_limit=self.memlim, n_workers=self.n_workers)
+                    
+#             feat_stack = np.concatenate([feat_stack, feat_stack_t_idp], axis = 2)
+            
+#             X, y = extract_training_data(truth, feat_stack)
+#             check_flag = True
+#             return X,y, check_flag
+        
+#         else:
+#             print('label image is empty')
+#             check_flag = False
+#             return 'no labels', 'y', check_flag
             
         
     def train(self, clear_dict= False, redo=False, first_set=0):
         path = self.label_path
-        feat_data = self.feat_data 
         if clear_dict:
             self.training_dict = {}
         labelnames = os.listdir(path)
@@ -268,7 +337,7 @@ class training:
                     print(label_name+' already done')
                     continue
                 print(label_name)
-                X, y, check_flag = self.training_set_per_image(label_name, path, feat_data)
+                X, y, check_flag = self.training_set_per_image(label_name, path)
                 if check_flag: self.training_dict[label_name] = X,y
 
         ### uncommented to not train classifier at this stage (will be done after labeling new set at the cost of not having an overlay at first)

@@ -9,6 +9,8 @@ TODO: for the above, use gauss filter for the gradient to make them independent;
 TODO: avoid the xarray or exploit it with the feature names, coordinates are anyway hard imposed and ignored from hdf5/nc
 TODO: convert dask image to float32 to keep same type everywhere
 
+IDEA: rank filters on 2D images in RAM --> would work directly for training, but would require some thoughts for the full volume segmentation
+
 """
 
 import numpy as np
@@ -46,7 +48,8 @@ class image_filter:
                  weight_unsharp = 0.6,
                  preprocess_with_unsharp_mask = False,
                  use_laplace = True,
-                 edge_mode = 'nearest'
+                 edge_mode = 'nearest',
+                 use_timesteps = True,
                  ):
         if sigma_for_ref not in sigmas:
             sigmas.append(sigma_for_ref)
@@ -55,6 +58,7 @@ class image_filter:
         self.sigma_for_ref = sigma_for_ref
         self.sigmas = sigmas   
         self.edge_mode = edge_mode
+        self.use_timesteps = use_timesteps
         
         #preprocessing parameters for unsharp mask (do this in a seperate step? lowpass filtering definetly has to happen outside on GPUs)
         self.weight_unsharp = weight_unsharp
@@ -108,25 +112,31 @@ class image_filter:
         return sigmas
 ## features
     def Gaussian_Blur_4D(self, sigma):
+        truncate = 3
+        if sigma >= 3: truncate = 2.5
         sigmas = self.check_sigma_for_dask_overlap(sigma)
-        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigmas)        
+        G = dask_image.ndfilters.gaussian_filter(self.data, mode = self.edge_mode, sigma = sigmas, truncate = truncate)        
         self.feature_names.append('Gaussian_4D_Blur_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
         self.Gaussian_4D_dict[f'{sigma:.1f}'] = G
         
-    def Gaussian_Blur_space(self, sigma):      
+    def Gaussian_Blur_space(self, sigma):
+        truncate = 3
+        if sigma >= 3: truncate = 2.5
         sigmas = self.check_sigma_for_dask_overlap(sigma)
         sigmas[-1] = 0   # potenital option: weak time sigma
-        G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode)
+        G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode, truncate = truncate)
         
         self.feature_names.append('Gaussian_space_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
         self.Gaussian_space_dict[f'{sigma:.1f}'] = G
         
-    def Gaussian_Blur_time(self, sigma):      
+    def Gaussian_Blur_time(self, sigma):
+        truncate = 3
+        if sigma >= 3: truncate = 2.5
         sigmas = self.check_sigma_for_dask_overlap(sigma)
         sigmas[:-1] = 0 # potenital option: weak space sigma
-        G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode)
+        G = dask_image.ndfilters.gaussian_filter(self.data, sigma = sigmas, mode = self.edge_mode, truncate = truncate)
         
         self.feature_names.append('Gaussian_time_'+f'{sigma:.1f}')
         self.calculated_features.append(G)
@@ -247,7 +257,7 @@ class image_filter:
         self.feature_names.append('Laplace_4D_'+f'{sigma:.1f}')
         self.calculated_features.append(L)
 
-    def Laplace_3D(self, sigma):      
+    def Laplace_3D(self, sigma):     
         sigmas = self.check_sigma_for_dask_overlap(sigma)
         sigmas[-1] = 0   # potenital option: weak time sigma
         L = dask_image.ndfilters.gaussian_laplace(self.data, sigma = sigmas, mode=self.edge_mode)
@@ -281,6 +291,12 @@ class image_filter:
     #     loc_z = dask.array.ones(da.shape[:-1])*dask.array.arange(da.shape[2])[None, None, :]
     #     self.feature_names_time_independent.append('loc_'+'z')
     #     self.calculated_features_time_independent.append(loc_z)
+
+    # def time_step(self):
+    #     loc_t = dask.array.ones(da.shape)*dask.array.arange(da.shape[3])[None, None, None, :]
+    #     self.feature_names_time_independent.append('time_step')
+    #     self.calculated_features.append(loc_t)
+        
         
 # stack featrues
     def Gaussian_4D_stack(self):
@@ -381,6 +397,8 @@ class image_filter:
          if self.loc_features:
              self.pixel_coordinates()
          #  #this feature is a double-edged sword, use with care!!
+         # if use_timesteps:
+         #     self.time_step() #time step and coordinate can more efficiently added after the dask calc
          
          self.prepared = True 
         
